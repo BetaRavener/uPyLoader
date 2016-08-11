@@ -1,0 +1,236 @@
+from threading import Thread
+
+import re
+import serial
+import time
+
+from src.connection import Connection
+from src.setting import Settings
+
+class ReadResult:
+    def __init__(self):
+        self.binary_data = b""
+
+class SerialConnection(Connection):
+    def __init__(self, port, baud_rate, terminal=None):
+        Connection.__init__(self, terminal)
+
+        self._port = port
+        self._baud_rate = baud_rate
+
+        try:
+            # These timeouts should be large enough so that any continuous transmission is fully received
+            self._serial = serial.Serial(self._port, self._baud_rate, timeout=0.2, write_timeout=0.2)
+            self.send_kill()
+        except (OSError, serial.SerialException):
+            self._serial = None
+            return
+
+        self._reader_thread = Thread(target=self._reader_thread_routine)
+        self._reader_thread.start()
+
+    def is_connected(self):
+        return self._serial is not None
+
+    def disconnect(self):
+        if self.is_connected():
+            if self._reader_thread.is_alive():
+                self._reader_running = False
+                self._reader_thread.join()
+            self._serial.close()
+            self._serial = None
+
+    # TODO: Rationalize ending and text encoding
+    def send_line(self, line_text, ending=b"\r\n"):
+        if type(line_text) is str:
+            line_text = line_text.encode('utf-8')
+
+        self._serial.write(line_text + ending)
+        time.sleep(Settings.send_sleep)
+
+    def send_character(self, char):
+        if type(char) is str:
+            char = char.encode('utf-8')
+
+        self._serial.write(char)
+        time.sleep(Settings.send_sleep)
+
+    def read_line(self):
+        x = self._serial.readline()
+
+        if x and self._terminal is not None:
+            self._terminal.add(x.decode("utf-8", errors="replace"))
+
+        return x
+
+    def read_timeout(self, count, retries=100):
+        data = b""
+        for i in range(0, retries):
+            rec = self._serial.read(count - len(data))
+            if rec:
+                data += rec
+                if len(data) == count:
+                    return data
+            time.sleep(0.01)
+        return None
+
+    def read_all(self):
+        buffer = ""
+        while True:
+            x = self._serial.read(100)
+            if x is None or not x:
+                break
+            buffer += x.decode('utf-8', errors="replace")
+
+        if self._terminal is not None:
+            self._terminal.add(buffer)
+
+        return buffer
+
+    def read_junk(self):
+        self.read_all()
+
+    def list_files(self):
+        self._auto_reader_lock.acquire()
+        self._auto_read_enabled = False
+        self.send_kill()
+        self.read_junk()
+        self.send_line("import os; os.listdir()")
+        self._serial.flush()
+
+        ret = self.read_all()
+        self._auto_read_enabled = True
+        self._auto_reader_lock.release()
+        return re.findall("'([^']+)'", ret)
+
+    @staticmethod
+    def escape_characters(text):
+        ret = ""
+        for c in text:
+            if c == "\n":
+                ret += "\\n"
+            elif c == "\"":
+                ret += "\\\""
+            else:
+                ret += c
+        return ret
+
+    def send_upload_file(self, file_name):
+        with open("mcu/upload.py") as f:
+            data = f.read()
+            data = data.replace("file_name.py", file_name)
+            self.send_start_paste()
+            lines = data.split("\n")
+            for line in lines:
+                self.send_line(line, b"\r")
+            self.send_end_paste()
+
+    def send_download_file(self, file_name):
+        with open("mcu/download.py") as f:
+            data = f.read()
+            data = data.replace("file_name.py", file_name)
+            self.send_start_paste()
+            lines = data.split("\n")
+            for line in lines:
+                self.send_line(line, b"\r")
+            self.send_end_paste()
+
+    def _upload_transfer_files_job(self):
+        self._auto_reader_lock.acquire()
+        self._auto_read_enabled = False
+        self.send_upload_file("__upload.py")
+        self.read_all()
+        with open("mcu/upload.py") as f:
+            data = f.read()
+            data = data.replace("\"file_name.py\"", "file_name")
+            res = self.send_file(data)
+
+        self.send_upload_file("__download.py")
+        self.read_all()
+        with open("mcu/download.py") as f:
+            data = f.read()
+            data = data.replace("\"file_name.py\"", "file_name")
+            res = self.send_file(data)
+        self._auto_read_enabled = True
+        self._auto_reader_lock.release()
+
+    def upload_transfer_files(self):
+        job_thread = Thread(target=self._upload_transfer_files_job)
+        job_thread.setDaemon(True)
+        job_thread.start()
+
+    def send_file(self, data):
+        # Split data into smaller chunks
+        n = 64
+        chunks = [data[i:i+n] for i in range(0, len(data), n)]
+        for chunk in chunks:
+            self._serial.write(("#{:03}{}".format(len(chunk), chunk)).encode("utf-8"))
+            ack = self.read_timeout(2)
+            if not ack or ack != b"#1":
+                return False
+        # Mark end
+        self._serial.write(b"#000")
+        check = self.read_timeout(3)
+        return check == b"#1#"
+
+    def recv_file(self):
+        result = b""
+        suc = False
+        # Initiate transfer
+        self._serial.write(b"###")
+        while True:
+            data = self.read_timeout(4)
+            if not data or data[0] != ord("#"):
+                self._serial.write(b"#2")
+                break
+            count = int(data[1:])
+            if count == 0:
+                suc = True
+                break
+            data = self.read_timeout(count)
+            if data:
+                result += data
+                # Send ACK
+                self._serial.write(b"#1")
+            else:
+                self._serial.write(b"#3")
+                break
+
+        self._serial.write(b"#1#" if suc else b"#0#")
+        return result if suc else None
+
+    def _write_file_job(self, file_name, text, use_script):
+        self._auto_reader_lock.acquire()
+        self._auto_read_enabled = False
+        if use_script:
+            self.run_file("__upload.py", "file_name=\"{}\"".format(file_name))
+        else:
+            self.send_upload_file(file_name)
+        self.read_junk()
+        self.send_file(text)
+        self._auto_read_enabled = True
+        self._auto_reader_lock.release()
+
+    def write_file(self, file_name, text):
+        job_thread = Thread(target=self._write_file_job, args=(file_name, text, Settings.use_transfer_scripts))
+        job_thread.setDaemon(True)
+        job_thread.start()
+
+    def _read_file_job(self, file_name, result, use_script):
+        self._auto_reader_lock.acquire()
+        self._auto_read_enabled = False
+        if use_script:
+            self.run_file("__download.py", "file_name=\"{}\"".format(file_name))
+        else:
+            self.send_download_file(file_name)
+        self.read_junk()
+        result.binary_data = self.recv_file()
+        self._auto_read_enabled = True
+        self._auto_reader_lock.release()
+
+    def read_file(self, file_name):
+        result = ReadResult()
+        job_thread = Thread(target=self._read_file_job, args=(file_name, result, Settings.use_transfer_scripts))
+        job_thread.start()
+        job_thread.join()
+        return result.binary_data.decode("utf-8", errors="replace") if result.binary_data is not None else "!Failed to read file!"
