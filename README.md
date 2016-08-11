@@ -11,7 +11,10 @@
 Clone this repository.
 The uPyLoader runs on Python3 and requires PyQt5 and PySerial above version 3. 
 Use pip to download these two via `pip install PyQt5` and `pip install pyserial>=3.1.1`.
-Inside this root directory, use `python main.py` to run the application.
+Inside this root directory, use `python3 main.py` to run the application.
+
+If having problems downloading PyQt5 on Debian distro (Ubuntu, Mint,..), try `sudo apt-get install python3-pyqt5`.
+Another way to obtain PyQt5 is by [installing from source]( http://pyqt.sourceforge.net/Docs/PyQt5/installation.html#building-and-installing-from-source).
 
 ### Usage:
 #### Appearance:
