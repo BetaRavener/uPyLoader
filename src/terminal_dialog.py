@@ -98,9 +98,9 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         if len(lines) == 1:
             self.connection.send_line(lines[0])
         elif len(lines) > 1:
-            self.connection.send_character(b"\5")
+            self.connection.send_start_paste()
             for line in lines:
                 self.connection.send_line(line, b"\r")
-            self.connection.send_character(b"\4")
+            self.connection.send_end_paste()
 
         self.inputTextBox.selectAll()
