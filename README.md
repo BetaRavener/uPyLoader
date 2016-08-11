@@ -1,7 +1,7 @@
 # uPyLoader
 ## A simple tool for communicating with MicroPython board.
 ## The tool is in Alpha version! It may hang or crash on certain user actions. Please, restart the application in such case.
-### Featutes:
+### Features:
 * File upload and download over WiFi & UART
 * Terminal over WiFI & UART
 * Multiline input field
@@ -11,7 +11,8 @@
 Clone this repository.
 The uPyLoader runs on Python3 and requires PyQt5 and PySerial above version 3. 
 Use pip to download these two via `pip install PyQt5` and `pip install pyserial>=3.1.1`.
-Inside this root directory, use `python3 main.py` to run the application.
+
+Inside this root directory, use `python main.py` to run the application. Depending on your python setup, you may need to actually run it with `python3 main.py`. Try this if the application crashes on startup.
 
 If having problems downloading PyQt5 on Debian distro (Ubuntu, Mint,..), try `sudo apt-get install python3-pyqt5`.
 Another way to obtain PyQt5 is by [installing from source]( http://pyqt.sourceforge.net/Docs/PyQt5/installation.html#building-and-installing-from-source).
