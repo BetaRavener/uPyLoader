@@ -2,3 +2,4 @@ root_dir=E:/Programming/Esperiff/ESP8266/Programs
 send_sleep=0.100
 read_sleep=0.100
 use_transfer_scripts=1
+wifi_preset=Default,192.168.4.1,8266

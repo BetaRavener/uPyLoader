@@ -1,9 +1,6 @@
-import os
+import re
 import socket
 import struct
-import sys
-
-import re
 from threading import Thread
 
 from src import websocket_helper
@@ -17,27 +14,34 @@ class WifiConnection(Connection):
     WEBREPL_GET_FILE = 2
     WEBREPL_GET_VER = 3
 
-    def __init__(self, host, port, terminal, password):
+    def __init__(self, host, port, terminal, ask_for_password):
         Connection.__init__(self, terminal)
 
         self.s = socket.socket()
-        self.s.connect((host, port))
+        self.s.settimeout(3)
+        errno = self.s.connect_ex((host, port))
+        if errno != 0:
+            self._clear()
+            return
+        self.s.settimeout(None)
 
         websocket_helper.client_handshake(self.s)
 
         self.ws = WebSocket(self.s)
-        self.login(password)
+        self.login(ask_for_password())
         try:
             self.read_all()
-        except :
-            self.ws = None
-            self.s.close()
-            self.s = None
+        except:
+            self._clear()
             return
-
 
         self._reader_thread = Thread(target=self._reader_thread_routine)
         self._reader_thread.start()
+
+    def _clear(self):
+        self.ws = None
+        self.s.close()
+        self.s = None
 
     def login(self, password):
         while True:
@@ -47,7 +51,6 @@ class WifiConnection(Connection):
                 break
 
         self.ws.write(password.encode("utf-8") + b"\r")
-
 
     def is_connected(self):
         return self.ws is not None
@@ -82,7 +85,7 @@ class WifiConnection(Connection):
     def send_character(self, char):
         self.ws.write(char)
 
-    #TODO: Unite ending and text encoding across all communications
+    # TODO: Unite ending and text encoding across all communications
     def send_line(self, line_text, ending="\r\n"):
         if isinstance(ending, bytes):
             ending = ending.decode("utf-8", errors="replace")
@@ -202,7 +205,7 @@ class WifiConnection(Connection):
         cnt = 0
 
         while True:
-            buf = text[cnt:cnt+1024]
+            buf = text[cnt:cnt + 1024]
             if not buf:
                 break
             self.ws.write(buf)
@@ -212,8 +215,3 @@ class WifiConnection(Connection):
         assert self.read_resp(self.ws) == 0
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
-
-
-
-
-

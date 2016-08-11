@@ -2,16 +2,18 @@ import sys
 
 from PyQt5.QtCore import QStringListModel, QModelIndex, Qt
 from PyQt5.QtGui import QFontDatabase
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, QFileDialog, QDialog, QInputDialog, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, QFileDialog, QDialog, QInputDialog, QLineEdit, QMessageBox
 
 from gui.mainwindow import Ui_MainWindow
 from src.baud_options import BaudOptions
 from src.connection_scanner import ConnectionScanner
+from src.ip_helper import IpHelper
 from src.serial_connection import SerialConnection
 from src.setting import Settings
 from src.terminal import Terminal
 from src.terminal_dialog import TerminalDialog
 from src.wifi_connection import WifiConnection
+from src.wifi_preset_dialog import WiFiPresetDialog
 
 __author__ = "Ivan Sevcik"
 
@@ -29,12 +31,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._terminal = Terminal()
         self._terminal_dialog = None
 
-        self.disconnected()
-
         self.actionNavigate.triggered.connect(self.navigate_directory)
         self.actionTerminal.triggered.connect(self.open_terminal)
         self.actionUpload.triggered.connect(lambda: self._connection.upload_transfer_files())
 
+        self.connectionComboBox.currentIndexChanged.connect(self.connection_changed)
         self.refreshButton.clicked.connect(self.refresh_ports)
 
         # Populate baud speed combo box and select default
@@ -42,6 +43,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for speed in BaudOptions.speeds:
             self.baudComboBox.addItem(str(speed))
         self.baudComboBox.setCurrentIndex(BaudOptions.speeds.index(115200))
+
+        self.presetButton.clicked.connect(self.show_presets)
 
         self.connectButton.clicked.connect(self.connect_pressed)
 
@@ -60,6 +63,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         fixed_font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
         self.codeEdit.setFont(fixed_font)
 
+        self.disconnected()
+
     def closeEvent(self, event):
         Settings.root_dir = self._root_dir
         Settings.save()
@@ -70,15 +75,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._terminal_dialog.close()
         event.accept()
 
+    def connection_changed(self):
+        connection = self._connection_scanner.port_list[self.connectionComboBox.currentIndex()]
+        self.connectionStackedWidget.setCurrentIndex(1 if connection == "wifi" else 0)
+
     def refresh_ports(self):
         self._connection_scanner.scan_connections()
         # Populate port combo box and select default
-        self.portComboBox.clear()
+        self.connectionComboBox.clear()
 
         if self._connection_scanner.port_list:
             for port in self._connection_scanner.port_list:
-                self.portComboBox.addItem(port)
-            self.portComboBox.setCurrentIndex(0)
+                self.connectionComboBox.addItem(port)
+            self.connectionComboBox.setCurrentIndex(0)
             self.connectButton.setEnabled(True)
         else:
             self.connectButton.setEnabled(False)
@@ -97,7 +106,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.set_status("Disconnected")
         self.listButton.setEnabled(False)
         self.saveMcuButton.setEnabled(False)
-        self.portComboBox.setEnabled(True)
+        self.connectionComboBox.setEnabled(True)
         self.baudComboBox.setEnabled(True)
         self.refreshButton.setEnabled(True)
         self.listView.setEnabled(False)
@@ -112,7 +121,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.set_status("Connected")
         self.listButton.setEnabled(True)
         self.saveMcuButton.setEnabled(True)
-        self.portComboBox.setEnabled(False)
+        self.connectionComboBox.setEnabled(False)
         self.baudComboBox.setEnabled(False)
         self.refreshButton.setEnabled(False)
         self.listView.setEnabled(True)
@@ -165,21 +174,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._connection.remove_file(file_name)
         self.list_mcu_files()
 
-    def start_connection(self):
-        port = self._connection_scanner.port_list[self.portComboBox.currentIndex()]
-        baud_rate = BaudOptions.speeds[self.baudComboBox.currentIndex()]
+    def ask_for_password(self):
+        input_dlg = QInputDialog(parent=self)
+        input_dlg.setTextEchoMode(QLineEdit.Password)
+        input_dlg.setWindowTitle("Enter WebREPL password")
+        input_dlg.setLabelText("Password")
+        input_dlg.resize(500, 100)
+        input_dlg.exec()
+        return input_dlg.textValue()
 
-        if port == "wifi":
-            input_dlg = QInputDialog(parent=self)
-            input_dlg.setTextEchoMode(QLineEdit.Password)
-            input_dlg.setWindowTitle("Enter WebREPL password")
-            input_dlg.setLabelText("Password")
-            input_dlg.resize(500, 100)
-            input_dlg.exec()
-            password = input_dlg.textValue()
-            self._connection = WifiConnection("192.168.4.1", 8266, self._terminal, password)
+    def start_connection(self):
+        connection = self._connection_scanner.port_list[self.connectionComboBox.currentIndex()]
+
+        if connection == "wifi":
+            ip_address = self.ipLineEdit.text()
+            port = self.portSpinBox.value()
+            if not IpHelper.is_valid_ipv4(ip_address):
+                QMessageBox.warning(self, "Invalid IP", "The IP address has invalid format")
+                return
+
+            self._connection = WifiConnection(ip_address, port, self._terminal, lambda: self.ask_for_password())
         else:
-            self._connection = SerialConnection(port, baud_rate, self._terminal)
+            baud_rate = BaudOptions.speeds[self.baudComboBox.currentIndex()]
+            self._connection = SerialConnection(connection, baud_rate, self._terminal)
 
         if self._connection is not None and self._connection.is_connected():
             self.connected()
@@ -191,6 +208,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._connection.disconnect()
         self._connection = None
         self.disconnected()
+
+    def show_presets(self):
+        dialog = WiFiPresetDialog()
+        dialog.accepted.connect(lambda: self.use_preset(dialog.selected_ip, dialog.selected_port))
+        dialog.exec()
+
+    def use_preset(self, ip, port):
+        self.ipLineEdit.setText(ip)
+        self.portSpinBox.setValue(port)
 
     def connect_pressed(self):
         if self._connection is not None and self._connection.is_connected():
@@ -206,6 +232,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def save_file_to_mcu(self):
         self._connection.write_file(self.filenameEdit.text(), self.codeEdit.toPlainText())
+        self.list_mcu_files()
 
     def open_local_file(self, idx):
         assert isinstance(idx, QModelIndex)
