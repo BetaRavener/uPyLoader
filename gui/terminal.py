@@ -51,6 +51,9 @@ class Ui_TerminalDialog(object):
         self.horizontalLayout_2.addWidget(self.autoscrollCheckBox)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem)
+        self.clearButton = QtWidgets.QPushButton(self.verticalLayoutWidget_3)
+        self.clearButton.setObjectName("clearButton")
+        self.horizontalLayout_2.addWidget(self.clearButton)
         self.verticalLayout_4.addLayout(self.horizontalLayout_2)
         self.horizontalLayoutWidget = QtWidgets.QWidget(self.splitter)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -162,6 +165,7 @@ class Ui_TerminalDialog(object):
         _translate = QtCore.QCoreApplication.translate
         TerminalDialog.setWindowTitle(_translate("TerminalDialog", "Terminal"))
         self.autoscrollCheckBox.setText(_translate("TerminalDialog", "Autoscroll"))
+        self.clearButton.setText(_translate("TerminalDialog", "Clear"))
         self.sendButton.setText(_translate("TerminalDialog", "Send"))
         self.groupBox.setTitle(_translate("TerminalDialog", "Control"))
         self.ctrlaButton.setText(_translate("TerminalDialog", "-A"))

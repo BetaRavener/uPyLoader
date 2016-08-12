@@ -24,6 +24,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         self.outputTextEdit.verticalScrollBar().sliderPressed.connect(lambda: self.autoscrollCheckBox.setChecked(False))
         self.outputTextEdit.verticalScrollBar().installEventFilter(self)
         self.inputTextBox.installEventFilter(self)
+        self.clearButton.clicked.connect(self.clear_content)
         self.sendButton.clicked.connect(self.send_input)
 
         self.ctrlaButton.clicked.connect(lambda: self.send_control("a"))
@@ -50,6 +51,9 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
     def emit_update_content(self):
         """Update content indirection so that this can be called in multi-threaded environment"""
         self._update_content_signal.emit()
+
+    def clear_content(self):
+        self.outputTextEdit.clear()
 
     def update_content(self):
         new_content = self.terminal.read()
@@ -80,6 +84,9 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
                         if not (event.modifiers() & Qt.ShiftModifier):
                             self.send_input()
                             return True
+                    if event.key() == Qt.Key_Tab:
+                        self.inputTextBox.insertPlainText(" "*4)
+                        return True
         elif target == self.outputTextEdit.verticalScrollBar():
             if isinstance(event, QHideEvent):
                 return True

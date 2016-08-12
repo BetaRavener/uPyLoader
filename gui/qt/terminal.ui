@@ -97,6 +97,13 @@
              </property>
             </spacer>
            </item>
+           <item>
+            <widget class="QPushButton" name="clearButton">
+             <property name="text">
+              <string>Clear</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </item>
         </layout>
@@ -128,6 +135,9 @@
            </property>
            <property name="locale">
             <locale language="English" country="UnitedStates"/>
+           </property>
+           <property name="lineWrapMode">
+            <enum>QPlainTextEdit::NoWrap</enum>
            </property>
           </widget>
          </item>
