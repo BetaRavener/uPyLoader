@@ -63,8 +63,8 @@ class Connection:
     def list_files(self):
         raise NotImplementedError()
 
-    def write_file(self, file_name, text):
+    def write_file(self, file_name, text, progress):
         raise NotImplementedError()
 
-    def read_file(self, file_name):
+    def read_file(self, file_name, progress):
         raise NotImplementedError()

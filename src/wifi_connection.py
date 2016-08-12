@@ -3,8 +3,11 @@ import socket
 import struct
 from threading import Thread
 
+import math
+
 from src import websocket_helper
 from src.connection import Connection
+from src.file_transfer import FileTransfer
 from src.websocket import WebSocket
 
 
@@ -110,66 +113,21 @@ class WifiConnection(Connection):
         assert sig == b"WB"
         return code
 
-    #########################################################
-    # def put_file(ws, local_file, remote_file):
-    #     sz = os.stat(local_file)[6]
-    #     dest_fname = (SANDBOX + remote_file).encode("utf-8")
-    #     rec = struct.pack(WEBREPL_REQ_S, b"WA", WEBREPL_PUT_FILE, 0, 0, sz, len(dest_fname), dest_fname)
-    #     debugmsg("%r %d" % (rec, len(rec)))
-    #     ws.write(rec[:10])
-    #     ws.write(rec[10:])
-    #     assert read_resp(ws) == 0
-    #     cnt = 0
-    #     with open(local_file, "rb") as f:
-    #         while True:
-    #             sys.stdout.write("Sent %d of %d bytes\r" % (cnt, sz))
-    #             sys.stdout.flush()
-    #             buf = f.read(1024)
-    #             if not buf:
-    #                 break
-    #             ws.write(buf)
-    #             cnt += len(buf)
-    #     print()
-    #     assert read_resp(ws) == 0
-    #########################################################
-    # def get_file(ws, local_file, remote_file):
-    #     src_fname = (SANDBOX + remote_file).encode("utf-8")
-    #     rec = struct.pack(WEBREPL_REQ_S, b"WA", WEBREPL_GET_FILE, 0, 0, 0, len(src_fname), src_fname)
-    #     debugmsg("%r %d" % (rec, len(rec)))
-    #     ws.write(rec)
-    #     assert read_resp(ws) == 0
-    #     with open(local_file, "wb") as f:
-    #         cnt = 0
-    #         while True:
-    #             ws.write(b"\0")
-    #             (sz,) = struct.unpack("<H", ws.read(2))
-    #             if sz == 0:
-    #                 break
-    #             while sz:
-    #                 buf = ws.read(sz)
-    #                 if not buf:
-    #                     raise OSError()
-    #                 cnt += len(buf)
-    #                 f.write(buf)
-    #                 sz -= len(buf)
-    #                 sys.stdout.write("Received %d bytes\r" % cnt)
-    #                 sys.stdout.flush()
-    #     print()
-    #     assert read_resp(ws) == 0
-    #########################################################
+    # TODO: Edit protocol to send total length so progress can be set correctly
+    def _read_file_job(self, file_name, transfer):
+        assert isinstance(transfer, FileTransfer)
 
-    def read_file(self, file_name):
-        ret = ""
-
-        file_name = file_name.encode("utf-8")
+        ret = b""
         rec = struct.pack(WifiConnection.WEBREPL_REQ_S, b"WA", WifiConnection.WEBREPL_GET_FILE, 0, 0, 0, len(file_name),
                           file_name)
 
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         self.read_junk()
+
         self.ws.write(rec)
         assert self.read_resp(self.ws) == 0
+
         while True:
             # Confirm message
             self.ws.write(b"\1")
@@ -180,38 +138,68 @@ class WifiConnection(Connection):
                 buf = self.ws.read(sz)
                 if not buf:
                     raise OSError()
-                ret += buf.decode("utf-8")
+                ret += buf
                 sz -= len(buf)
-        assert self.read_resp(self.ws) == 0
+
+        if self.read_resp(self.ws) == 0:
+            transfer.mark_finished()
+            transfer.read_result.binary_data = ret
+        else:
+            transfer.mark_error()
+            transfer.read_result.binary_data = None
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
-        return ret
 
-    def write_file(self, file_name, text):
-        if type(text) is str:
-            text = text.encode("utf-8")
+    def read_file(self, file_name, transfer):
+        if isinstance(file_name, str):
+            file_name = file_name.encode("utf-8")
+
+        job_thread = Thread(target=self._read_file_job, args=(file_name, transfer))
+        job_thread.setDaemon(True)
+        job_thread.start()
+
+    def _write_file_job(self, file_name, text, transfer):
+        assert isinstance(transfer, FileTransfer)
 
         sz = len(text)
-        file_name = file_name.encode("utf-8")
         rec = struct.pack(WifiConnection.WEBREPL_REQ_S, b"WA", WifiConnection.WEBREPL_PUT_FILE, 0, 0, sz,
                           len(file_name), file_name)
 
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         self.read_junk()
+
         self.ws.write(rec[:10])
         self.ws.write(rec[10:])
-        assert self.read_resp(self.ws) == 0
-        cnt = 0
+        if self.read_resp(self.ws) != 0:
+            transfer.mark_error()
+            self._auto_read_enabled = True
+            self._auto_reader_lock.release()
+            return
 
+        cnt = 0
         while True:
-            buf = text[cnt:cnt + 1024]
+            buf = text[cnt:cnt + 256]
             if not buf:
                 break
             self.ws.write(buf)
             cnt += len(buf)
+            transfer.progress = cnt / sz
 
-        print()
-        assert self.read_resp(self.ws) == 0
+        if self.read_resp(self.ws) == 0:
+            transfer.mark_finished()
+        else:
+            transfer.mark_error()
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
+
+    def write_file(self, file_name, text, transfer):
+        if isinstance(file_name, str):
+            file_name = file_name.encode("utf-8")
+        if isinstance(text, str):
+            text = text.encode("utf-8")
+
+        job_thread = Thread(target=self._write_file_job,
+                            args=(file_name, text, transfer))
+        job_thread.setDaemon(True)
+        job_thread.start()

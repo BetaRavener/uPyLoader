@@ -5,11 +5,10 @@ import serial
 import time
 
 from src.connection import Connection
+from src.file_transfer import FileTransfer, ReadResult
 from src.setting import Settings
 
-class ReadResult:
-    def __init__(self):
-        self.binary_data = b""
+
 
 class SerialConnection(Connection):
     def __init__(self, port, baud_rate, terminal=None):
@@ -159,21 +158,34 @@ class SerialConnection(Connection):
         job_thread.setDaemon(True)
         job_thread.start()
 
-    def send_file(self, data):
+    def send_file(self, data, transfer):
+        assert isinstance(transfer, FileTransfer)
         # Split data into smaller chunks
         n = 64
         chunks = [data[i:i+n] for i in range(0, len(data), n)]
-        for chunk in chunks:
+        # Get number of chunks for reporting
+        chunks_count = len(chunks)
+        for i, chunk in enumerate(chunks):
             self._serial.write(("#{:03}{}".format(len(chunk), chunk)).encode("utf-8"))
             ack = self.read_timeout(2)
             if not ack or ack != b"#1":
+                transfer.mark_error()
                 return False
+            transfer.progress = (i+1)/chunks_count
         # Mark end
         self._serial.write(b"#000")
         check = self.read_timeout(3)
-        return check == b"#1#"
 
-    def recv_file(self):
+        if check == b"#1#":
+            transfer.mark_finished()
+            return True
+        else:
+            transfer.mark_error()
+            return False
+
+    # TODO: Edit protocol to send total length so progress can be set correctly
+    def recv_file(self, transfer):
+        assert isinstance(transfer, FileTransfer)
         result = b""
         suc = False
         # Initiate transfer
@@ -197,9 +209,14 @@ class SerialConnection(Connection):
                 break
 
         self._serial.write(b"#1#" if suc else b"#0#")
-        return result if suc else None
+        if suc:
+            transfer.mark_finished()
+            transfer.read_result.binary_data = result
+        else:
+            transfer.mark_error()
+            transfer.read_result.binary_data = None
 
-    def _write_file_job(self, file_name, text, use_script):
+    def _write_file_job(self, file_name, text, transfer, use_script):
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         if use_script:
@@ -207,16 +224,16 @@ class SerialConnection(Connection):
         else:
             self.send_upload_file(file_name)
         self.read_junk()
-        self.send_file(text)
+        self.send_file(text, transfer)
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
-    def write_file(self, file_name, text):
-        job_thread = Thread(target=self._write_file_job, args=(file_name, text, Settings.use_transfer_scripts))
+    def write_file(self, file_name, text, transfer):
+        job_thread = Thread(target=self._write_file_job, args=(file_name, text, transfer, Settings.use_transfer_scripts))
         job_thread.setDaemon(True)
         job_thread.start()
 
-    def _read_file_job(self, file_name, result, use_script):
+    def _read_file_job(self, file_name, transfer, use_script):
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         if use_script:
@@ -224,13 +241,11 @@ class SerialConnection(Connection):
         else:
             self.send_download_file(file_name)
         self.read_junk()
-        result.binary_data = self.recv_file()
+        self.recv_file(transfer)
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
-    def read_file(self, file_name):
-        result = ReadResult()
-        job_thread = Thread(target=self._read_file_job, args=(file_name, result, Settings.use_transfer_scripts))
+    def read_file(self, file_name, transfer):
+        job_thread = Thread(target=self._read_file_job, args=(file_name, transfer, Settings.use_transfer_scripts))
+        job_thread.setDaemon(True)
         job_thread.start()
-        job_thread.join()
-        return result.binary_data.decode("utf-8", errors="replace") if result.binary_data is not None else "!Failed to read file!"
