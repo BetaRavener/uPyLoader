@@ -63,6 +63,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.saveLocalButton.clicked.connect(self.save_file_local)
         self.saveMcuButton.clicked.connect(self.save_file_to_mcu)
+        self.runButton.clicked.connect(self.run_file)
+        self.runButton.hide()
 
         fixed_font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
         self.codeEdit.setFont(fixed_font)
@@ -110,6 +112,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.set_status("Disconnected")
         self.listButton.setEnabled(False)
         self.saveMcuButton.setEnabled(False)
+        self.runButton.setEnabled(False)
         self.connectionComboBox.setEnabled(True)
         self.baudComboBox.setEnabled(True)
         self.refreshButton.setEnabled(True)
@@ -127,6 +130,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.set_status("Connected")
         self.listButton.setEnabled(True)
         self.saveMcuButton.setEnabled(True)
+        self.runButton.setEnabled(True)
         self.connectionComboBox.setEnabled(False)
         self.baudComboBox.setEnabled(False)
         self.refreshButton.setEnabled(False)
@@ -256,6 +260,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         progress_dlg.finished.connect(self.list_mcu_files)
         progress_dlg.show()
         self._connection.write_file(name, content, progress_dlg.transfer)
+
+    def run_file(self):
+        content = self.codeEdit.toPlainText()
+        self._connection.send_block(content)
 
     def open_local_file(self, idx):
         assert isinstance(idx, QModelIndex)

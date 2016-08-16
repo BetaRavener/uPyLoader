@@ -30,12 +30,22 @@ class Connection:
     def send_character(self, char):
         raise NotImplementedError()
 
+    def send_block(self, text):
+        lines = text.split("\n")
+        if len(lines) == 1:
+            self.send_line(lines[0], "\r")
+        elif len(lines) > 1:
+            self.send_start_paste()
+            for line in lines:
+                self.send_line(line, "\r")
+            self.send_end_paste()
+
     def run_file(self, file_name, globals_init=""):
         self.send_start_paste()
         if globals_init:
-            self.send_line(globals_init, b"\r")
-        self.send_line("with open(\"{}\") as f:".format(file_name), b"\r")
-        self.send_line("    exec(f.read(), globals())", b"\r")
+            self.send_line(globals_init, "\r")
+        self.send_line("with open(\"{}\") as f:".format(file_name), "\r")
+        self.send_line("    exec(f.read(), globals())", "\r")
         self.send_end_paste()
 
     def remove_file(self, file_name):

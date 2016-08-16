@@ -86,13 +86,12 @@ class WifiConnection(Connection):
         self.ws.read_all(0)
 
     def send_character(self, char):
+        assert isinstance(char, str)
         self.ws.write(char)
 
-    # TODO: Unite ending and text encoding across all communications
     def send_line(self, line_text, ending="\r\n"):
-        if isinstance(ending, bytes):
-            ending = ending.decode("utf-8", errors="replace")
-
+        assert isinstance(line_text, str)
+        assert isinstance(ending, str)
         self.ws.write(line_text + ending)
 
     def list_files(self):

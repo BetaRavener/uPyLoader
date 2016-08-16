@@ -9,7 +9,6 @@ from src.file_transfer import FileTransfer, ReadResult
 from src.setting import Settings
 
 
-
 class SerialConnection(Connection):
     def __init__(self, port, baud_rate, terminal=None):
         Connection.__init__(self, terminal)
@@ -39,19 +38,17 @@ class SerialConnection(Connection):
             self._serial.close()
             self._serial = None
 
-    # TODO: Rationalize ending and text encoding
-    def send_line(self, line_text, ending=b"\r\n"):
-        if type(line_text) is str:
-            line_text = line_text.encode('utf-8')
+    def send_line(self, line_text, ending="\r\n"):
+        assert isinstance(line_text, str)
+        assert isinstance(ending, str)
 
-        self._serial.write(line_text + ending)
+        self._serial.write((line_text + ending).encode('utf-8'))
         time.sleep(Settings.send_sleep)
 
     def send_character(self, char):
-        if type(char) is str:
-            char = char.encode('utf-8')
+        assert isinstance(char, str)
 
-        self._serial.write(char)
+        self._serial.write(char.encode('utf-8'))
         time.sleep(Settings.send_sleep)
 
     def read_line(self):
@@ -121,7 +118,7 @@ class SerialConnection(Connection):
             self.send_start_paste()
             lines = data.split("\n")
             for line in lines:
-                self.send_line(line, b"\r")
+                self.send_line(line, "\r")
             self.send_end_paste()
 
     def send_download_file(self, file_name):
@@ -131,7 +128,7 @@ class SerialConnection(Connection):
             self.send_start_paste()
             lines = data.split("\n")
             for line in lines:
-                self.send_line(line, b"\r")
+                self.send_line(line, "\r")
             self.send_end_paste()
 
     def _upload_transfer_files_job(self):
@@ -162,7 +159,7 @@ class SerialConnection(Connection):
         assert isinstance(transfer, FileTransfer)
         # Split data into smaller chunks
         n = 64
-        chunks = [data[i:i+n] for i in range(0, len(data), n)]
+        chunks = [data[i:i + n] for i in range(0, len(data), n)]
         # Get number of chunks for reporting
         chunks_count = len(chunks)
         for i, chunk in enumerate(chunks):
@@ -171,7 +168,7 @@ class SerialConnection(Connection):
             if not ack or ack != b"#1":
                 transfer.mark_error()
                 return False
-            transfer.progress = (i+1)/chunks_count
+            transfer.progress = (i + 1) / chunks_count
         # Mark end
         self._serial.write(b"#000")
         check = self.read_timeout(3)
@@ -229,7 +226,8 @@ class SerialConnection(Connection):
         self._auto_reader_lock.release()
 
     def write_file(self, file_name, text, transfer):
-        job_thread = Thread(target=self._write_file_job, args=(file_name, text, transfer, Settings.use_transfer_scripts))
+        job_thread = Thread(target=self._write_file_job,
+                            args=(file_name, text, transfer, Settings.use_transfer_scripts))
         job_thread.setDaemon(True)
         job_thread.start()
 

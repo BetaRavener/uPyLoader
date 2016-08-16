@@ -270,12 +270,44 @@
            <number>0</number>
           </property>
           <item>
+           <widget class="QLabel" name="label_7">
+            <property name="minimumSize">
+             <size>
+              <width>40</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Local</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QLineEdit" name="localPathEdit"/>
           </item>
           <item>
            <widget class="QPushButton" name="saveLocalButton">
+            <property name="maximumSize">
+             <size>
+              <width>70</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
-             <string>Save Local</string>
+             <string>Save</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>icons/floppy_disk_1-64x64.png</normaloff>icons/floppy_disk_1-64x64.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -287,12 +319,70 @@
            <number>0</number>
           </property>
           <item>
+           <widget class="QLabel" name="label_8">
+            <property name="minimumSize">
+             <size>
+              <width>40</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>MCU</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QLineEdit" name="filenameEdit"/>
           </item>
           <item>
-           <widget class="QPushButton" name="saveMcuButton">
+           <widget class="QPushButton" name="runButton">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
-             <string>Save to MCU</string>
+             <string>Run</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>icons/run.png</normaloff>icons/run.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="saveMcuButton">
+            <property name="maximumSize">
+             <size>
+              <width>70</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Save</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>icons/floppy_disk_1-64x64.png</normaloff>icons/floppy_disk_1-64x64.png</iconset>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
             </property>
            </widget>
           </item>

@@ -40,6 +40,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
 
         self.terminal.read()
         self.outputTextEdit.setText(self.terminal.history)
+        self._input_history_index = 0
 
     def closeEvent(self, event):
         if self.terminal_listener:
@@ -54,6 +55,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
 
     def clear_content(self):
         self.outputTextEdit.clear()
+        self.terminal.clear()
 
     def update_content(self):
         new_content = self.terminal.read()
@@ -68,13 +70,16 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
 
         prev_cursor = self.outputTextEdit.textCursor()
         self.outputTextEdit.moveCursor(QTextCursor.End)
-        self.outputTextEdit.insertPlainText(bytes(new_content, "utf-8").decode("unicode_escape"))
+        #self.outputTextEdit.insertPlainText(bytes(new_content, "utf-8").decode("unicode_escape"))
+        self.outputTextEdit.insertPlainText(new_content)
         self.outputTextEdit.setTextCursor(prev_cursor)
 
         if self.autoscrollCheckBox.isChecked() and not scrolling:
             scrollbar.setValue(scrollbar.maximum())
         else:
             scrollbar.setValue(current_scroll)
+
+
 
     def eventFilter(self, target, event):
         if target == self.inputTextBox:
@@ -87,6 +92,17 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
                     if event.key() == Qt.Key_Tab:
                         self.inputTextBox.insertPlainText(" "*4)
                         return True
+                    if event.key() == Qt.Key_Up and (event.modifiers() & Qt.ControlModifier):
+                        if self._input_history_index > 0:
+                            self._input_history_index -= 1
+                            self.inputTextBox.clear()
+                            self.inputTextBox.setPlainText(self.terminal.input(self._input_history_index))
+                    if event.key() == Qt.Key_Down and (event.modifiers() & Qt.ControlModifier):
+                        if self._input_history_index < self.terminal.last_input_idx():
+                            self._input_history_index += 1
+                            self.inputTextBox.clear()
+                            self.inputTextBox.setPlainText(self.terminal.input(self._input_history_index))
+
         elif target == self.outputTextEdit.verticalScrollBar():
             if isinstance(event, QHideEvent):
                 return True
@@ -101,13 +117,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         if not text:
             return
 
-        lines = text.split("\n")
-        if len(lines) == 1:
-            self.connection.send_line(lines[0])
-        elif len(lines) > 1:
-            self.connection.send_start_paste()
-            for line in lines:
-                self.connection.send_line(line, b"\r")
-            self.connection.send_end_paste()
-
+        self.terminal.add_input(text)
+        self._input_history_index = self.terminal.last_input_idx()
+        self.connection.send_block(text)
         self.inputTextBox.selectAll()

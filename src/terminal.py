@@ -6,6 +6,7 @@ class Terminal:
         self.add_event = Event(Terminal.add_event_handler)
         self.buffer = ""
         self.history = ""
+        self.input_history = []
 
     def add(self, string):
         self.buffer += string
@@ -13,9 +14,20 @@ class Terminal:
 
     def read(self):
         self.history += self.buffer
-        ret = self.buffer
-        self.buffer = ""
+        ret, self.buffer = self.buffer, ""
         return ret
+
+    def clear(self):
+        self.history = self.buffer = ""
+
+    def add_input(self, input_string):
+        self.input_history.append(input_string)
+
+    def last_input_idx(self):
+        return len(self.input_history) - 1
+
+    def input(self, idx):
+        return self.input_history[idx]
 
     @staticmethod
     def add_event_handler(listener_handler):
