@@ -4,7 +4,7 @@
 ### Features:
 * File upload and download over WiFi & UART
 * Terminal over WiFI & UART
-* Multiline input field
+* Multiline input field with history
 * Remote script execution
 
 ### Setup:
@@ -28,7 +28,7 @@ To change root directory for local folder, use `File->Navigate`.
 
 When connected, the application will allow opening the Terminal (`View->Terminal`).
 The upper box in terminal shows output of the MicroPython on board.
-Lower box is used to prepare command for the board. `Enter` key is used to send the command. `Shift-Enter` creates new line. The input also supports classic copy/paste via `Ctrl+C`, `Ctrl+V`.
+Lower box is used to prepare command for the board. `Enter` key is used to send the command. `Shift-Enter` creates new line. The input also supports classic copy/paste via `Ctrl+C`, `Ctrl+V`. To browse through previous commands (input history), use `Ctrl+UpArrow` and `Ctrl+DownArrow`.
 The control group can be used for sending special `Ctrl-_` sequences. For example, sending `Ctrl-C` causes KeyboardInterupt and breaks any running code unless handled.
 
 #### Connecting
