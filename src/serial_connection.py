@@ -131,7 +131,9 @@ class SerialConnection(Connection):
                 self.send_line(line, "\r")
             self.send_end_paste()
 
-    def _upload_transfer_files_job(self):
+    def _upload_transfer_files_job(self, transfer):
+        assert isinstance(transfer, FileTransfer)
+        transfer.set_file_count(2)
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         self.send_upload_file("__upload.py")
@@ -139,19 +141,19 @@ class SerialConnection(Connection):
         with open("mcu/upload.py") as f:
             data = f.read()
             data = data.replace("\"file_name.py\"", "file_name")
-            res = self.send_file(data)
+            res = self.send_file(data, transfer)
 
         self.send_upload_file("__download.py")
         self.read_all()
         with open("mcu/download.py") as f:
             data = f.read()
             data = data.replace("\"file_name.py\"", "file_name")
-            res = self.send_file(data)
+            res = self.send_file(data, transfer)
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
-    def upload_transfer_files(self):
-        job_thread = Thread(target=self._upload_transfer_files_job)
+    def upload_transfer_files(self, transfer):
+        job_thread = Thread(target=self._upload_transfer_files_job, args=[transfer])
         job_thread.setDaemon(True)
         job_thread.start()
 

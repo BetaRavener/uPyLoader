@@ -36,7 +36,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.actionNavigate.triggered.connect(self.navigate_directory)
         self.actionTerminal.triggered.connect(self.open_terminal)
-        self.actionUpload.triggered.connect(lambda: self._connection.upload_transfer_files())
+        self.actionUpload.triggered.connect(self.upload_transfer_scripts)
 
         self.connectionComboBox.currentIndexChanged.connect(self.connection_changed)
         self.refreshButton.clicked.connect(self.refresh_ports)
@@ -303,6 +303,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         progress_dlg.finished.connect(lambda: self.finished_read_mcu_file(file_name, progress_dlg.transfer))
         progress_dlg.show()
         self._connection.read_file(file_name, progress_dlg.transfer)
+
+    def upload_transfer_scripts(self):
+        progress_dlg = FileTransferDialog(FileTransferDialog.UPLOAD)
+        progress_dlg.finished.connect(self.list_mcu_files)
+        progress_dlg.show()
+        self._connection.upload_transfer_files(progress_dlg.transfer)
 
     def open_terminal(self):
         if self._terminal_dialog is not None:

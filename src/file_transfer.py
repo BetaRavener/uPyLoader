@@ -7,6 +7,8 @@ class FileTransfer:
     # TODO: Implement cancelled in wifi and serial connection
     def __init__(self, signal):
         self._progress = 0
+        self._file = 0
+        self._files = 1
         self.cancelled = False
         self._finished = False
         self._error = False
@@ -27,7 +29,11 @@ class FileTransfer:
         return self._finished
 
     def mark_finished(self):
-        self._finished = True
+        self._file += 1
+        if self._file == self._file_count:
+            self._finished = True
+        else:
+            self._progress = 0
         self._signal()
 
     @property
@@ -37,3 +43,6 @@ class FileTransfer:
     def mark_error(self):
         self._error = True
         self._signal()
+
+    def set_file_count(self, count):
+        self._file_count = count
