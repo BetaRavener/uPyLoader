@@ -19,17 +19,18 @@ Another way to obtain PyQt5 is by [installing from source]( http://pyqt.sourcefo
 
 ### Usage:
 #### Appearance:
-The main application window offers 3 colums:
-* Left column shows local folder, double clicking a file opens it in the middle colum.
-* Middle column shows code of selected file
-* Right column shows remote (MicroPython) folder. It should be populated when connection is established, but in case not, `List Files` button can be used to do so. 
+The main application window offers 2 colums:
+* Left column shows local folder, double clicking a file opens it in Code Editor.
+* Right column shows remote (MicroPython) folder. It should be populated when connection is established, but in case not, `List Files` button can be used to do so. Again, double clicking file opens it in Code Editor.
 To change root directory for local folder, use `File->Navigate`.
-**Note:** Local files are currently not refreshed upon external change. If you are using external editor (recommended), double-click the file in local folder to refresh it.
 
 When connected, the application will allow opening the Terminal (`View->Terminal`).
 The upper box in terminal shows output of the MicroPython on board.
 Lower box is used to prepare command for the board. `Enter` key is used to send the command. `Shift-Enter` creates new line. The input also supports classic copy/paste via `Ctrl+C`, `Ctrl+V`. To browse through previous commands (input history), use `Ctrl+UpArrow` and `Ctrl+DownArrow`.
 The control group can be used for sending special `Ctrl-_` sequences. For example, sending `Ctrl-C` causes KeyboardInterupt and breaks any running code unless handled.
+
+Code editor has single main element that shows script code. The editor is populated by double-clicking `.py` scripts in either of the main window's columns. The code can be either saved to local file or uploaded to remote device by using the `Save` buttons above the code editor element.
+**Note:** Local files are currently not refreshed upon external change. If you are using external editor (recommended), double-click the file in local folder to refresh it.
 
 #### Connecting
 On startup, the application scans for working UART connection and lists them in `Port` drop-down box. WiFi option is also listed there.
@@ -42,9 +43,9 @@ File transfer for WiFi works out-of-the-box.
 UART file transfer requires communication scripts on the side of board, unless this option is disabled as mentioned in Configuration section.
 To upload communication scripts, use `File->Init Transfer Files`. These files greatly improve transfer speed and prevent communication errors.
 
-To download script from MicroPython board, double click it in right, remote folder column.
+To download file from MicroPython board, select it in the right, remote folder column and press `Transfer` underneath. The script will be transfered to a folder specified in `PC path` with the same name it had on the remote device. 
 
-To upload your script, first open it (either from local or remote folder), optionally edit it's code or set the name in lower `Filename` box and press `Save to MCU` button.
+To upload file, select it in left, local folder column, optionally edit it's name underneath in the `MCU name` box and press `Transfer` next to it.
 
 To remove script, select it by single clicking it in remote folder column and press `Remove` button.
 
@@ -54,3 +55,9 @@ Select the file in remote folder you wish to execute (by single-clicking it) and
 ### Configuration:
 All configuration is currently handled by `config.txt` file.
 To disable using scripts in flash for file transfer over UART, set `use_transfer_scripts=0`
+
+## Changelog:
+### 2016-08-17:
+* The main GUI is now two-pane layout supporting file transfer between local host (PC) and remote device (MCU)
+* Code editor became separate window which can be used to edit scripts in-place. Previous file-save functionality is preserved for fast workflow.
+* UART communication protocol was changed to support transfer of binary files. The transfer scripts in the MCU needs to be updated. Use `File->Init Transfer Files` to do so.
