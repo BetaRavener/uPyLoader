@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
 
 from gui.mainwindow import Ui_MainWindow
 from src.baud_options import BaudOptions
+from src.code_edit_dialog import CodeEditDialog
 from src.connection_scanner import ConnectionScanner
 from src.file_transfer import FileTransfer
 from src.file_transfer_dialog import FileTransferDialog
@@ -33,9 +34,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._mcu_files_model = None
         self._terminal = Terminal()
         self._terminal_dialog = None
+        self._code_editor = None
 
         self.actionNavigate.triggered.connect(self.navigate_directory)
         self.actionTerminal.triggered.connect(self.open_terminal)
+        self.actionCode_Editor.triggered.connect(self.open_code_editor)
         self.actionUpload.triggered.connect(self.upload_transfer_scripts)
 
         self.connectionComboBox.currentIndexChanged.connect(self.connection_changed)
@@ -54,20 +57,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.update_file_tree()
 
         self.listButton.clicked.connect(self.list_mcu_files)
-        self.listView.clicked.connect(self.select_mcu_file)
+        self.listView.clicked.connect(self.mcu_file_selection_changed)
         self.listView.doubleClicked.connect(self.read_mcu_file)
         self.executeButton.clicked.connect(self.execute_mcu_code)
         self.removeButton.clicked.connect(self.remove_file)
+        self.localPathEdit.setText(self._root_dir)
 
+        self.treeView.clicked.connect(self.local_file_selection_changed)
         self.treeView.doubleClicked.connect(self.open_local_file)
 
-        self.saveLocalButton.clicked.connect(self.save_file_local)
-        self.saveMcuButton.clicked.connect(self.save_file_to_mcu)
-        self.runButton.clicked.connect(self.run_file)
-        self.runButton.hide()
-
-        fixed_font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
-        self.codeEdit.setFont(fixed_font)
+        self.transferToMcuButton.clicked.connect(self.transfer_to_mcu)
+        self.transferToPcButton.clicked.connect(self.transfer_to_pc)
 
         self.disconnected()
 
@@ -111,32 +111,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connectButton.setText("Connect")
         self.set_status("Disconnected")
         self.listButton.setEnabled(False)
-        self.saveMcuButton.setEnabled(False)
-        self.runButton.setEnabled(False)
         self.connectionComboBox.setEnabled(True)
         self.baudComboBox.setEnabled(True)
         self.refreshButton.setEnabled(True)
         self.listView.setEnabled(False)
-        self.filenameEdit.setEnabled(False)
         self.executeButton.setEnabled(False)
         self.removeButton.setEnabled(False)
         self.actionTerminal.setEnabled(False)
+        self.actionUpload.setEnabled(False)
+        self.transferToMcuButton.setEnabled(False)
+        self.transferToPcButton.setEnabled(False)
         if self._terminal_dialog:
             self._terminal_dialog.close()
+        if self._code_editor:
+            self._code_editor.disconnected()
         self.refresh_ports()
 
     def connected(self):
         self.connectButton.setText("Disconnect")
         self.set_status("Connected")
         self.listButton.setEnabled(True)
-        self.saveMcuButton.setEnabled(True)
-        self.runButton.setEnabled(True)
         self.connectionComboBox.setEnabled(False)
         self.baudComboBox.setEnabled(False)
         self.refreshButton.setEnabled(False)
         self.listView.setEnabled(True)
-        self.filenameEdit.setEnabled(True)
         self.actionTerminal.setEnabled(True)
+        if isinstance(self._connection, SerialConnection):
+            self.actionUpload.setEnabled(True)
+        self.transferToMcuButton.setEnabled(True)
+        if self._code_editor:
+            self._code_editor.connected(self._connection)
         self.list_mcu_files()
 
     def navigate_directory(self):
@@ -148,6 +152,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         path = dialog.selectedFiles()
         if path and path[0]:
             self._root_dir = path[0]
+            self.localPathEdit.setText(self._root_dir)
             self.update_file_tree()
 
     def update_file_tree(self):
@@ -166,6 +171,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._mcu_files_model.setData(self._mcu_files_model.index(idx), file)
 
         self.listView.setModel(self._mcu_files_model)
+        self.mcu_file_selection_changed()
 
     def execute_mcu_code(self):
         idx = self.listView.currentIndex()
@@ -234,33 +240,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.start_connection()
 
-    def save_file_local(self):
-        path = self.localPathEdit.text()
-        if not path:
-            QMessageBox.warning(self, "Invalid path", "Enter correct path for local file.")
-            return
-
-        try:
-            with open(path, "w") as file:
-                file.write(self.codeEdit.toPlainText())
-        except IOError:
-            QMessageBox.critical(self, "Save operation failed", "Couldn't save the file. Check path and permissions.")
-
-    def save_file_to_mcu(self):
-        name = self.filenameEdit.text()
-        if not name:
-            QMessageBox.warning(self, "Invalid name", "Enter correct name for remote file.")
-            return
-        content = self.codeEdit.toPlainText()
-        if not content:
-            QMessageBox.warning(self, "Empty file", "Can't write empty file.")
-            return
-
-        progress_dlg = FileTransferDialog(FileTransferDialog.UPLOAD)
-        progress_dlg.finished.connect(self.list_mcu_files)
-        progress_dlg.show()
-        self._connection.write_file(name, content, progress_dlg.transfer)
-
     def run_file(self):
         content = self.codeEdit.toPlainText()
         self._connection.send_block(content)
@@ -273,31 +252,57 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if model.isDir(idx):
             return
 
-        file_path = model.filePath(idx)
-        with open(file_path) as f:
-            text = "".join(f.readlines())
-            self.codeEdit.clear()
-            self.codeEdit.setText(text)
-            self.localPathEdit.setText(file_path)
-            self.filenameEdit.setText(file_path.rsplit("/", 1)[1])
+        local_path = model.filePath(idx)
+        remote_path = local_path.rsplit("/", 1)[1]
+        if local_path.endswith(".py"):
+            with open(local_path) as f:
+                text = "".join(f.readlines())
+                self.open_code_editor()
+                self._code_editor.set_code(local_path, remote_path, text)
+        else:
+            QMessageBox.information(self, "Unknown file", "Files without .py ending won't open"
+                                                          " in editor, but can still be transferred.")
 
-    def select_mcu_file(self):
-        self.executeButton.setEnabled(True)
-        self.removeButton.setEnabled(True)
+    def mcu_file_selection_changed(self):
+        idx = self.listView.currentIndex()
+        assert isinstance(idx, QModelIndex)
+        if idx.row() >= 0:
+            self.executeButton.setEnabled(True)
+            self.removeButton.setEnabled(True)
+            self.transferToPcButton.setEnabled(True)
+        else:
+            self.executeButton.setEnabled(False)
+            self.removeButton.setEnabled(False)
+            self.transferToPcButton.setEnabled(False)
+
+    def local_file_selection_changed(self):
+        idx = self.treeView.currentIndex()
+        assert isinstance(idx, QModelIndex)
+        model = self.treeView.model()
+        assert isinstance(model, QFileSystemModel)
+
+        if model.isDir(idx):
+            return
+
+        local_path = model.filePath(idx)
+        self.remoteNameEdit.setText(local_path.rsplit("/", 1)[1])
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
         result = transfer.read_result
         text = result.binary_data.decode("utf-8", errors="replace") if result.binary_data is not None else "!Failed to read file!"
-        self.codeEdit.clear()
-        self.codeEdit.setText(text)
-        self.filenameEdit.setText(file_name)
+        self.open_code_editor()
+        self._code_editor.set_code(None, file_name, text)
 
     def read_mcu_file(self, idx):
         assert isinstance(idx, QModelIndex)
         model = self.listView.model()
         assert isinstance(model, QStringListModel)
         file_name = model.data(idx, Qt.EditRole)
+        if not file_name.endswith(".py"):
+            QMessageBox.information(self, "Unknown file", "Files without .py ending won't open"
+                                                          " in editor, but can still be transferred.")
+            return
 
         progress_dlg = FileTransferDialog(FileTransferDialog.DOWNLOAD)
         progress_dlg.finished.connect(lambda: self.finished_read_mcu_file(file_name, progress_dlg.transfer))
@@ -310,6 +315,48 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         progress_dlg.show()
         self._connection.upload_transfer_files(progress_dlg.transfer)
 
+    def transfer_to_mcu(self):
+        idx = self.treeView.currentIndex()
+        assert isinstance(idx, QModelIndex)
+        model = self.treeView.model()
+        assert isinstance(model, QFileSystemModel)
+
+        if model.isDir(idx):
+            return
+
+        local_path = model.filePath(idx)
+        remote_path = self.remoteNameEdit.text()
+        with open(local_path, "rb") as f:
+            content = f.read()
+
+        progress_dlg = FileTransferDialog(FileTransferDialog.UPLOAD)
+        progress_dlg.finished.connect(self.list_mcu_files)
+        progress_dlg.show()
+        self._connection.write_file(remote_path, content, progress_dlg.transfer)
+
+    def finished_transfer_to_pc(self, file_path, transfer):
+        if not transfer.read_result.binary_data:
+            return
+
+        try:
+            with open(file_path, "wb") as file:
+                file.write(transfer.read_result.binary_data)
+        except IOError:
+            QMessageBox.critical(self, "Save operation failed", "Couldn't save the file. Check path and permissions.")
+
+    def transfer_to_pc(self):
+        idx = self.listView.currentIndex()
+        assert isinstance(idx, QModelIndex)
+        model = self.listView.model()
+        assert isinstance(model, QStringListModel)
+        remote_path = model.data(idx, Qt.EditRole)
+        local_path = self.localPathEdit.text()+"/"+remote_path
+
+        progress_dlg = FileTransferDialog(FileTransferDialog.DOWNLOAD)
+        progress_dlg.finished.connect(lambda: self.finished_transfer_to_pc(local_path, progress_dlg.transfer))
+        progress_dlg.show()
+        self._connection.read_file(remote_path, progress_dlg.transfer)
+
     def open_terminal(self):
         if self._terminal_dialog is not None:
             return
@@ -319,6 +366,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def close_terminal(self):
         self._terminal_dialog = None
+
+    def open_code_editor(self):
+        if self._code_editor is not None:
+            return
+        self._code_editor = CodeEditDialog(self._connection)
+        self._code_editor.mcu_file_saved.connect(self.list_mcu_files)
+        self._code_editor.finished.connect(self.close_code_editor)
+        self._code_editor.show()
+
+    def close_code_editor(self):
+        self._code_editor = None
 
 
 # Main Function

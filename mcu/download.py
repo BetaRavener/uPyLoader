@@ -14,25 +14,26 @@ def read_timeout(uart, count, retries=1000):
     return None
 
 
-uart = UART(0, 115200)
-start = read_timeout(uart, 3)
-suc = True
-if start == b"###":
-    with open("file_name.py", "r") as f:
-        n = 64
-        while True:
-            chunk = f.read(n)
-            if not chunk:
-                break
-            x = uart.write(("#{:03}{}".format(len(chunk), chunk)).encode("utf-8"))
-            ack = read_timeout(uart, 2)
-            if not ack or ack != b"#1":
-                suc = False
-                break
+def main():
+    uart = UART(0, 115200)
+    start = read_timeout(uart, 3)
+    suc = True
+    if start == b"###":
+        with open("file_name.py", "rb") as f:
+            n = 64
+            while True:
+                chunk = f.read(64)
+                if not chunk:
+                    break
+                x = uart.write(b"".join([b"#", bytes([len(chunk)]), chunk]))
+                ack = read_timeout(uart, 2)
+                if not ack or ack != b"#1":
+                    suc = False
+                    break
 
-        # Mark end
-        if suc:
-            x = uart.write(b"#000")
-        data = None
-        chunks = None
-    check = read_timeout(uart, 3)
+            # Mark end
+            if suc:
+                x = uart.write(b"#\0")
+        check = read_timeout(uart, 3)
+
+main()

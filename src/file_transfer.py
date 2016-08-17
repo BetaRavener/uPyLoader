@@ -8,7 +8,7 @@ class FileTransfer:
     def __init__(self, signal):
         self._progress = 0
         self._file = 0
-        self._files = 1
+        self._file_count = 1
         self.cancelled = False
         self._finished = False
         self._error = False

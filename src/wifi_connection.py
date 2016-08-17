@@ -157,10 +157,10 @@ class WifiConnection(Connection):
         job_thread.setDaemon(True)
         job_thread.start()
 
-    def _write_file_job(self, file_name, text, transfer):
+    def _write_file_job(self, file_name, file_bytes, transfer):
         assert isinstance(transfer, FileTransfer)
 
-        sz = len(text)
+        sz = len(file_bytes)
         rec = struct.pack(WifiConnection.WEBREPL_REQ_S, b"WA", WifiConnection.WEBREPL_PUT_FILE, 0, 0, sz,
                           len(file_name), file_name)
 
@@ -178,7 +178,7 @@ class WifiConnection(Connection):
 
         cnt = 0
         while True:
-            buf = text[cnt:cnt + 256]
+            buf = file_bytes[cnt:cnt + 256]
             if not buf:
                 break
             self.ws.write(buf)

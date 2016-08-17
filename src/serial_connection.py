@@ -141,14 +141,14 @@ class SerialConnection(Connection):
         with open("mcu/upload.py") as f:
             data = f.read()
             data = data.replace("\"file_name.py\"", "file_name")
-            res = self.send_file(data, transfer)
+            res = self.send_file(data.encode('utf-8'), transfer)
 
         self.send_upload_file("__download.py")
         self.read_all()
         with open("mcu/download.py") as f:
             data = f.read()
             data = data.replace("\"file_name.py\"", "file_name")
-            res = self.send_file(data, transfer)
+            res = self.send_file(data.encode('utf-8'), transfer)
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
@@ -159,20 +159,32 @@ class SerialConnection(Connection):
 
     def send_file(self, data, transfer):
         assert isinstance(transfer, FileTransfer)
-        # Split data into smaller chunks
+        # Encode data to prevent special REPL sequences
+        encoded = bytearray()
+        for x in data:
+            if x < 10:
+                encoded.append(0x00)
+                encoded.append(x | 0xF0)
+            else:
+                encoded.append(x)
+        # Split encoded data into smaller chunks
+        idx = 0
         n = 64
-        chunks = [data[i:i + n] for i in range(0, len(data), n)]
-        # Get number of chunks for reporting
-        chunks_count = len(chunks)
-        for i, chunk in enumerate(chunks):
-            self._serial.write(("#{:03}{}".format(len(chunk), chunk)).encode("utf-8"))
+        total_len = len(encoded)
+        while idx < total_len:
+            chunk = encoded[idx:idx+n]
+            # Shorten chunk to prevent brake at special sequence
+            if chunk[len(chunk)-1] == 0x0:
+                chunk = chunk[0:-1]
+            self._serial.write(b"".join([b"#", bytes([len(chunk)]), chunk]))
             ack = self.read_timeout(2)
             if not ack or ack != b"#1":
                 transfer.mark_error()
                 return False
-            transfer.progress = (i + 1) / chunks_count
+            idx += len(chunk)
+            transfer.progress = idx / total_len
         # Mark end
-        self._serial.write(b"#000")
+        self._serial.write(b"#\0")
         check = self.read_timeout(3)
 
         if check == b"#1#":
@@ -190,11 +202,11 @@ class SerialConnection(Connection):
         # Initiate transfer
         self._serial.write(b"###")
         while True:
-            data = self.read_timeout(4)
+            data = self.read_timeout(2)
             if not data or data[0] != ord("#"):
                 self._serial.write(b"#2")
                 break
-            count = int(data[1:])
+            count = data[1]
             if count == 0:
                 suc = True
                 break
@@ -227,9 +239,12 @@ class SerialConnection(Connection):
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
-    def write_file(self, file_name, text, transfer):
+    def write_file(self, file_name, content, transfer):
+        if isinstance(content, str):
+            content = content.encode('utf-8')
+
         job_thread = Thread(target=self._write_file_job,
-                            args=(file_name, text, transfer, Settings.use_transfer_scripts))
+                            args=(file_name, content, transfer, Settings.use_transfer_scripts))
         job_thread.setDaemon(True)
         job_thread.start()
 
