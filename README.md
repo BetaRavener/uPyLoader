@@ -6,6 +6,7 @@
 * Terminal over WiFI & UART
 * Multiline input field with history
 * Remote script execution
+* Graphical interface for flashing firmware (via esptool)
 
 ### Setup:
 Clone this repository.
@@ -51,6 +52,11 @@ To remove script, select it by single clicking it in remote folder column and pr
 
 #### File execution:
 Select the file in remote folder you wish to execute (by single-clicking it) and press `Execute` button.
+
+### Flashing firmware:
+Open dialog by selecting `File->Flash firmware`. Because of mismatch between python version (uPyLoader == Python3, esptool == Python2), it is required that you select Python2 executable of environment which contains esptool (esptool can be added to environment with `pip install esptool`). In case that this executable can be called directly (e.g. on linux), it is sufficient to type `python` into `Python2 path` field. Otherwise, full path to executable must be specified. You can use `Pick` button next to the input field for browsing through directories. An example of full path on Windows is `C:/Python27/python.exe`.
+
+Once correct Python2 executable is selected, choose firmware file that you would like to flash to ESP8266. Either enter full path to `Firmware file` field or use `Pick` button to browse. You can also choose if you would like to erase flash prior to writing new firmware by checking `Erase flash` (this operation takes aprox. 10 seconds). Select communication port from `Port` drop-down and check if you have ESP8266 wired up correctly (the correct wiring can be seen by clicking on `Wiring instructions`). If everything is in order, press Flash button. The `Flasher output` text-box should show progress of the operation and end with message `Rebooting from flash mode...` if successful. 
 
 ### Configuration:
 All configuration is currently handled by `config.txt` file.
