@@ -128,15 +128,6 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         sub.stdout.close()
         code = sub.wait()
 
-        self._flash_output_signal.emit(b"Rebooting from flash mode...\n", 0)
-
-        s = serial.Serial("COM3", 115200)
-        s.dtr = False
-        s.rts = True
-        time.sleep(0.1)
-        s.rts = False
-        time.sleep(0.1)
-
         self._flash_finished_signal.emit(code)
 
     def _flash(self):
@@ -154,7 +145,13 @@ class FlashDialog(QDialog, Ui_FlashDialog):
 
     def _flash_finished(self, code):
         if code == 0:
-            pass # Everything ok
+            self._flash_output_signal.emit(b"Rebooting from flash mode...\n", 0)
+            s = serial.Serial("COM3", 115200)
+            s.dtr = False
+            s.rts = True
+            time.sleep(0.1)
+            s.rts = False
+            time.sleep(0.1)
         elif code == -1:
             QMessageBox.critical(self, "Flashing Error", "Failed to run script.\nCheck that path to python is correct.")
         else:
