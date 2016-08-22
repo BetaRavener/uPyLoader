@@ -21,6 +21,7 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         self.setModal(True)
 
         self._connection_scanner = ConnectionScanner()
+        self._port = None
         self._flash_output = None
         self._flashing = False
 
@@ -98,16 +99,16 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         current_scroll = scrollbar.value()
         scrolling = scrollbar.isSliderDown()
 
-        self.outputEdit.setPlainText(self._flash_output.decode('utf-8'))
+        self.outputEdit.setPlainText(self._flash_output.decode('utf-8', errors="ignore"))
 
         if not scrolling:
             scrollbar.setValue(scrollbar.maximum())
         else:
             scrollbar.setValue(current_scroll)
 
-    def _flash_job(self, python_path, firmware_file, erase_flash, port):
+    def _flash_job(self, python_path, firmware_file, erase_flash):
         try:
-            params = [python_path, "flash.py", port, firmware_file]
+            params = [python_path, "flash.py", self._port, firmware_file]
             if erase_flash:
                 params.append("--erase")
             sub = subprocess.Popen(params, stdout=subprocess.PIPE, bufsize=1)
@@ -134,10 +135,16 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         self._flash_output = bytearray()
         self.outputEdit.setPlainText("")
         python_path = self.pythonPathEdit.text()
+        if not python_path:
+            QMessageBox.critical(self, "Error", "Python2 path was not set.")
+            return
         firmware_file = self.firmwarePathEdit.text()
+        if not firmware_file:
+            QMessageBox.critical(self, "Error", "Firmware file was not set.")
+            return
         erase_flash = self.eraseFlashCheckbox.isChecked()
-        port = self._connection_scanner.port_list[self.portComboBox.currentIndex()]
-        job_thread = Thread(target=self._flash_job, args=[python_path, firmware_file, erase_flash, port])
+        self._port = self._connection_scanner.port_list[self.portComboBox.currentIndex()]
+        job_thread = Thread(target=self._flash_job, args=[python_path, firmware_file, erase_flash])
         job_thread.setDaemon(True)
         job_thread.start()
         self.flashButton.setEnabled(False)
@@ -145,13 +152,17 @@ class FlashDialog(QDialog, Ui_FlashDialog):
 
     def _flash_finished(self, code):
         if code == 0:
-            self._flash_output_signal.emit(b"Rebooting from flash mode...\n", 0)
-            s = serial.Serial("COM3", 115200)
-            s.dtr = False
-            s.rts = True
-            time.sleep(0.1)
-            s.rts = False
-            time.sleep(0.1)
+            self._update_output(b"Rebooting from flash mode...\n", 0)
+            try:
+                s = serial.Serial(self._port, 115200)
+                s.dtr = False
+                s.rts = True
+                time.sleep(0.1)
+                s.rts = False
+                time.sleep(0.1)
+            except (OSError, serial.SerialException):
+                QMessageBox.critical(self, "Flashing Error", "Failed to reboot into working mode.")
+
         elif code == -1:
             QMessageBox.critical(self, "Flashing Error", "Failed to run script.\nCheck that path to python is correct.")
         else:
