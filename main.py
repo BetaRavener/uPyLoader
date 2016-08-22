@@ -1,7 +1,6 @@
 import sys
 
 from PyQt5.QtCore import QStringListModel, QModelIndex, Qt
-from PyQt5.QtGui import QFontDatabase
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
     QFileDialog, QDialog, QInputDialog, QLineEdit, QMessageBox
 
@@ -11,6 +10,7 @@ from src.code_edit_dialog import CodeEditDialog
 from src.connection_scanner import ConnectionScanner
 from src.file_transfer import FileTransfer
 from src.file_transfer_dialog import FileTransferDialog
+from src.flash_dialog import FlashDialog
 from src.ip_helper import IpHelper
 from src.serial_connection import SerialConnection
 from src.setting import Settings
@@ -35,11 +35,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._terminal = Terminal()
         self._terminal_dialog = None
         self._code_editor = None
+        self._flash_dialog = None
 
         self.actionNavigate.triggered.connect(self.navigate_directory)
         self.actionTerminal.triggered.connect(self.open_terminal)
         self.actionCode_Editor.triggered.connect(self.open_code_editor)
         self.actionUpload.triggered.connect(self.upload_transfer_scripts)
+        self.actionFlash.triggered.connect(self.open_flash_dialog)
 
         self.connectionComboBox.currentIndexChanged.connect(self.connection_changed)
         self.refreshButton.clicked.connect(self.refresh_ports)
@@ -51,7 +53,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.baudComboBox.setCurrentIndex(BaudOptions.speeds.index(115200))
 
         self.presetButton.clicked.connect(self.show_presets)
-
         self.connectButton.clicked.connect(self.connect_pressed)
 
         self.update_file_tree()
@@ -86,7 +87,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connectionStackedWidget.setCurrentIndex(1 if connection == "wifi" else 0)
 
     def refresh_ports(self):
-        self._connection_scanner.scan_connections()
+        self._connection_scanner.scan_connections(with_wifi=True)
         # Populate port combo box and select default
         self.connectionComboBox.clear()
 
@@ -212,7 +213,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._connection = WifiConnection(ip_address, port, self._terminal, lambda: self.ask_for_password())
         else:
             baud_rate = BaudOptions.speeds[self.baudComboBox.currentIndex()]
-            self._connection = SerialConnection(connection, baud_rate, self._terminal)
+            self._connection = SerialConnection(connection, baud_rate, self._terminal,
+                                                self.serialResetCheckBox.isChecked())
 
         if self._connection is not None and self._connection.is_connected():
             self.connected()
@@ -290,7 +292,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
         result = transfer.read_result
-        text = result.binary_data.decode("utf-8", errors="replace") if result.binary_data is not None else "!Failed to read file!"
+        text = result.binary_data.decode("utf-8",
+                                         errors="replace") if result.binary_data is not None else "!Failed to read file!"
         self.open_code_editor()
         self._code_editor.set_code(None, file_name, text)
 
@@ -350,7 +353,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         model = self.listView.model()
         assert isinstance(model, QStringListModel)
         remote_path = model.data(idx, Qt.EditRole)
-        local_path = self.localPathEdit.text()+"/"+remote_path
+        local_path = self.localPathEdit.text() + "/" + remote_path
 
         progress_dlg = FileTransferDialog(FileTransferDialog.DOWNLOAD)
         progress_dlg.finished.connect(lambda: self.finished_transfer_to_pc(local_path, progress_dlg.transfer))
@@ -377,6 +380,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def close_code_editor(self):
         self._code_editor = None
+
+    def open_flash_dialog(self):
+        if self._code_editor is not None:
+            return
+        self._flash_dialog = FlashDialog()
+        self._flash_dialog.finished.connect(self.close_flash_dialog)
+        self._flash_dialog.show()
+
+    def close_flash_dialog(self):
+        self._flash_dialog = None
 
 
 # Main Function

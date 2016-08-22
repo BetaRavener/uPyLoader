@@ -10,7 +10,7 @@ from src.setting import Settings
 
 
 class SerialConnection(Connection):
-    def __init__(self, port, baud_rate, terminal=None):
+    def __init__(self, port, baud_rate, terminal=None, reset=False):
         Connection.__init__(self, terminal)
 
         self._port = port
@@ -18,7 +18,18 @@ class SerialConnection(Connection):
 
         try:
             # These timeouts should be large enough so that any continuous transmission is fully received
-            self._serial = serial.Serial(self._port, self._baud_rate, timeout=0.2, write_timeout=0.2)
+            self._serial = serial.Serial(None, self._baud_rate, timeout=0.2, write_timeout=0.2)
+            self._serial.dtr = False
+            self._serial.rts = False
+            self._serial.port = port
+            self._serial.open()
+            if reset:
+                self._serial.rts = True
+                time.sleep(0.1)
+                self._serial.rts = False
+                x = ""
+                while not x.endswith(">>>"):
+                    x += self._serial.read().decode('utf-8', errors="ignore")
             self.send_kill()
         except (OSError, serial.SerialException):
             self._serial = None

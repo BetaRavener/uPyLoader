@@ -9,7 +9,7 @@ class ConnectionScanner:
         self.port_list = []
 
     @staticmethod
-    def _serial_ports():
+    def _serial_ports(with_wifi):
         """ Lists serial port names
 
             :raises EnvironmentError:
@@ -30,15 +30,20 @@ class ConnectionScanner:
         result = []
         for port in ports:
             try:
-                s = serial.Serial(port)
+                s = serial.Serial()
+                s.dtr = False
+                s.rts = False
+                s.port = port
+                s.open()
                 s.close()
                 result.append(port)
             except (OSError, serial.SerialException):
                 pass
 
-        result.append("wifi")
+        if with_wifi:
+            result.append("wifi")
         return result
 
-    def scan_connections(self):
-        self.port_list = ConnectionScanner._serial_ports()
+    def scan_connections(self, with_wifi):
+        self.port_list = ConnectionScanner._serial_ports(with_wifi)
 

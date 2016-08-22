@@ -84,7 +84,7 @@
          </sizepolicy>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="uartPage">
          <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -122,6 +122,16 @@
               <string>115200</string>
              </property>
             </item>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="serialResetCheckBox">
+            <property name="text">
+             <string>Issue reset</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
            </widget>
           </item>
           <item>
@@ -472,6 +482,7 @@
     </property>
     <addaction name="actionNavigate"/>
     <addaction name="actionUpload"/>
+    <addaction name="actionFlash"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -502,6 +513,11 @@
   <action name="actionCode_Editor">
    <property name="text">
     <string>Code Editor</string>
+   </property>
+  </action>
+  <action name="actionFlash">
+   <property name="text">
+    <string>Flash firmware</string>
    </property>
   </action>
  </widget>

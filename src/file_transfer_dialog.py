@@ -1,7 +1,7 @@
 from time import sleep
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QProgressDialog, QMessageBox, QDialog
+from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtWidgets import QMessageBox, QDialog
 
 from gui.file_transfer import Ui_FileTransferDialog
 from src.file_transfer import FileTransfer
@@ -14,7 +14,7 @@ class FileTransferDialog(QDialog, Ui_FileTransferDialog):
     DOWNLOAD = 1
 
     def __init__(self, type):
-        super(FileTransferDialog, self).__init__()
+        super(FileTransferDialog, self).__init__(None, Qt.WindowCloseButtonHint)
         self.setupUi(self)
         self.setModal(True)
 

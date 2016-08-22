@@ -12,7 +12,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
     _update_content_signal = pyqtSignal()
 
     def __init__(self, connection, terminal):
-        super(TerminalDialog, self).__init__()
+        super(TerminalDialog, self).__init__(None, Qt.WindowCloseButtonHint)
         self.setupUi(self)
 
         self.connection = connection

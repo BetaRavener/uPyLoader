@@ -10,7 +10,7 @@ __author__ = "Ivan Sevcik"
 
 class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
     def __init__(self):
-        super(WiFiPresetDialog, self).__init__()
+        super(WiFiPresetDialog, self).__init__(None, Qt.WindowCloseButtonHint)
         self.setupUi(self)
 
         self.selected_ip = None
