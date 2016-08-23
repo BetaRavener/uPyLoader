@@ -9,6 +9,7 @@ class Settings:
     wifi_presets = []
     python_flash_executable = None
     last_firmware_directory = None
+    debug_mode = False
 
     try:
         with open("config.txt") as file:

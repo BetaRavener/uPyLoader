@@ -12,6 +12,7 @@ from src.file_transfer import FileTransfer
 from src.file_transfer_dialog import FileTransferDialog
 from src.flash_dialog import FlashDialog
 from src.ip_helper import IpHelper
+from src.logger import Logger
 from src.serial_connection import SerialConnection
 from src.setting import Settings
 from src.terminal import Terminal
@@ -397,6 +398,12 @@ if __name__ == '__main__':
     # Create main app
     myApp = QApplication(sys.argv)
     myApp.setQuitOnLastWindowClosed(True)
+
+    try:
+        sys.argv.index("--debug")
+        Settings.debug_mode = True
+    except ValueError:
+        pass
 
     ex2 = MainWindow()
     ex2.show()

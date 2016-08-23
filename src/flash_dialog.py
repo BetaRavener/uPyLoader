@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QDialog, QScrollBar, QMessageBox, QFileDialog
 
 from gui.flash_dialog import Ui_FlashDialog
 from src.connection_scanner import ConnectionScanner
+from src.logger import Logger
 from src.setting import Settings
 
 
@@ -111,14 +112,18 @@ class FlashDialog(QDialog, Ui_FlashDialog):
             params = [python_path, "flash.py", self._port, firmware_file]
             if erase_flash:
                 params.append("--erase")
+            if Settings.debug_mode:
+                params.append("--debug")
             sub = subprocess.Popen(params, stdout=subprocess.PIPE, bufsize=1)
         except FileNotFoundError:
             self._flash_finished_signal.emit(-1)
             return
 
         delete = 0
+        Logger.log("Pipe receiving:\n")
         while True:
             x = sub.stdout.read(1)
+            Logger.log(x)
             if not x:
                 break
             if x[0] == 8:
@@ -126,6 +131,7 @@ class FlashDialog(QDialog, Ui_FlashDialog):
             else:
                 self._flash_output_signal.emit(x, delete)
                 delete = 0
+        Logger.log("Pipe end.\n")
         sub.stdout.close()
         code = sub.wait()
 
@@ -151,6 +157,9 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         self._flashing = True
 
     def _flash_finished(self, code):
+        Logger.log("Flash output contents:\n")
+        Logger.log(self._flash_output)
+
         if code == 0:
             self._update_output(b"Rebooting from flash mode...\n", 0)
             try:

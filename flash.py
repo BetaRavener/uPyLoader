@@ -56,6 +56,12 @@ if __name__ == '__main__':
         port = sys.argv[1]
         firmware_file = sys.argv[2]
         erase_flash = len(sys.argv) >= 4 and sys.argv[3] == "--erase"
+        debug = len(sys.argv) >= 5 and sys.argv[4] == "--debug"
+        if debug:
+            print "Character test: "
+            for i in range(0, 256):
+                print chr(i),
+            print ""
         flash(port, firmware_file, erase_flash)
     except:
         exit(1)
