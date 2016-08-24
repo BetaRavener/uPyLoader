@@ -1,6 +1,6 @@
 import subprocess
 import time
-from threading import Thread
+from threading import Thread, Lock
 
 import serial
 from PyQt5.QtCore import pyqtSignal, Qt
@@ -13,7 +13,7 @@ from src.setting import Settings
 
 
 class FlashDialog(QDialog, Ui_FlashDialog):
-    _flash_output_signal = pyqtSignal(bytes, int)
+    _flash_output_signal = pyqtSignal()
     _flash_finished_signal = pyqtSignal(int)
 
     def __init__(self):
@@ -24,6 +24,7 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         self._connection_scanner = ConnectionScanner()
         self._port = None
         self._flash_output = None
+        self._flash_output_mutex = Lock()
         self._flashing = False
 
         if Settings.python_flash_executable:
@@ -89,18 +90,15 @@ class FlashDialog(QDialog, Ui_FlashDialog):
                  "GND\t-> GND"
         QMessageBox.about(self, "Wiring", wiring)
 
-    def _update_output(self, output, delete):
-        if delete:
-            del self._flash_output[-delete:]
-        self._flash_output.extend(output)
-
+    def _update_output(self):
         scrollbar = self.outputEdit.verticalScrollBar()
         assert isinstance(scrollbar, QScrollBar)
         # Preserve scroll while updating content
         current_scroll = scrollbar.value()
         scrolling = scrollbar.isSliderDown()
 
-        self.outputEdit.setPlainText(self._flash_output.decode('utf-8', errors="ignore"))
+        with self._flash_output_mutex:
+            self.outputEdit.setPlainText(self._flash_output.decode('utf-8', errors="ignore"))
 
         if not scrolling:
             scrollbar.setValue(scrollbar.maximum())
@@ -119,18 +117,29 @@ class FlashDialog(QDialog, Ui_FlashDialog):
             self._flash_finished_signal.emit(-1)
             return
 
+        buf = bytearray()
         delete = 0
         Logger.log("Pipe receiving:\n")
         while True:
             x = sub.stdout.read(1)
             Logger.log(x)
+            if not x or (x[0] == 8 and delete == 0) or (x[0] != 8 and (x[0] in b"\r\n\t ")):
+                with self._flash_output_mutex:
+                    if delete > 0:
+                        self._flash_output = self._flash_output[:-delete]
+                    self._flash_output.extend(buf)
+                self._flash_output_signal.emit()
+                buf = bytearray()
+                delete = 0
+
             if not x:
                 break
+
             if x[0] == 8:
                 delete += 1
             else:
-                self._flash_output_signal.emit(x, delete)
-                delete = 0
+                buf.append(x[0])
+
         Logger.log("Pipe end.\n")
         sub.stdout.close()
         code = sub.wait()
@@ -161,7 +170,8 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         Logger.log(self._flash_output)
 
         if code == 0:
-            self._update_output(b"Rebooting from flash mode...\n", 0)
+            self._flash_output.extend(b"Rebooting from flash mode...\n")
+            self._update_output()
             try:
                 s = serial.Serial(self._port, 115200)
                 s.dtr = False
