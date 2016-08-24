@@ -38,7 +38,7 @@ def flash(port, firmware_file, erase_flash):
         for i in xrange(10):
             print ".",
             sleep(1)
-        print ""
+        print "\nDone erasing flash."
 
     # Reconnect
     esp.connect()
@@ -50,6 +50,7 @@ def flash(port, firmware_file, erase_flash):
 
     # Write flash
     esptool.write_flash(esp, args)
+    print "Done writing new firmware."
 
 if __name__ == '__main__':
     try:

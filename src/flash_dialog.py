@@ -179,6 +179,8 @@ class FlashDialog(QDialog, Ui_FlashDialog):
                 time.sleep(0.1)
                 s.rts = False
                 time.sleep(0.1)
+                self._flash_output.extend(b"Done, you may now use the device.\n")
+                self._update_output()
             except (OSError, serial.SerialException):
                 QMessageBox.critical(self, "Flashing Error", "Failed to reboot into working mode.")
 
