@@ -11,7 +11,7 @@
 ### Setup:
 Clone this repository.
 The uPyLoader runs on Python3 and requires PyQt5 and PySerial above version 3. 
-Use pip to download these two via `pip install PyQt5` and `pip install pyserial>=3.1.1`.
+Use pip to download these two via `pip install PyQt5` and `pip install pyserial>=3.1.1`. OS-X users can also use script ` 	install_osx_dependencies.sh` in root directory provided by @sarusso to install dependencies automatically. 
 
 Inside this root directory, use `python main.py` to run the application. Depending on your python setup, you may need to actually run it with `python3 main.py`. Try this if the application crashes on startup.
 
