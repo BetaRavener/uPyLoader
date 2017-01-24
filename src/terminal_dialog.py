@@ -1,8 +1,10 @@
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QKeyEvent, QHideEvent, QFontDatabase, QTextCursor
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QDialog, QScrollBar
 
 from gui.terminal import Ui_TerminalDialog
+from src.qt_helper import QtHelper
 from src.setting import Settings
 from src.signal_interface import Listener
 
@@ -76,7 +78,6 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
 
         prev_cursor = self.outputTextEdit.textCursor()
         self.outputTextEdit.moveCursor(QTextCursor.End)
-        #self.outputTextEdit.insertPlainText(bytes(new_content, "utf-8").decode("unicode_escape"))
         self.outputTextEdit.insertPlainText(new_content)
         self.outputTextEdit.setTextCursor(prev_cursor)
 
@@ -89,10 +90,12 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         if target == self.inputTextBox:
             if isinstance(event, QKeyEvent):
                 if event.type() == QKeyEvent.KeyPress:
-                    if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
-                        if not (event.modifiers() & Qt.ShiftModifier):
-                            self.send_input()
-                            return True
+                    event_sequence = QtHelper.key_event_sequence(event)
+                    if event_sequence.matches(Settings().new_line_key) != QKeySequence.NoMatch:
+                        return False
+                    if event_sequence.matches(Settings().send_key) != QKeySequence.NoMatch:
+                        self.send_input()
+                        return True
                     if event.key() == Qt.Key_Tab:
                         self.inputTextBox.insertPlainText(" "*4)
                         return True

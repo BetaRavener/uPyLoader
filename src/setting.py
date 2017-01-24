@@ -1,6 +1,11 @@
+from json import JSONDecodeError
+
 from PyQt5.QtCore import QByteArray
 from PyQt5.QtCore import QDir
 import json
+
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QKeySequence
 
 from src.singleton import Singleton
 
@@ -17,17 +22,39 @@ class Settings(metaclass=Singleton):
         self.last_firmware_directory = None
         self.debug_mode = False
         self._geometries = {}
+        self.new_line_key = QKeySequence(Qt.SHIFT + Qt.Key_Return, Qt.SHIFT + Qt.Key_Enter)
+        self.send_key = QKeySequence(Qt.Key_Return, Qt.Key_Enter)
 
         if not self.load():
             self.load_old()
 
+    def serialize(self):
+        serialized = {}
+        for key, val in self.__dict__.items():
+            if isinstance(val, QKeySequence):
+                val = val.toString()
+
+            serialized[key] = val
+
+        return serialized
+
+    def deserialize(self, serialized):
+        deserialized = {}
+        for key, val in serialized.items():
+            if key == "new_line_key" or key == "send_key":
+                val = QKeySequence(val)
+
+            deserialized[key] = val
+
+        return deserialized
+
     def load(self):
         try:
             with open("config.json") as file:
-                for key, val in json.load(file).items():
+                for key, val in self.deserialize(json.load(file)).items():
                     self.__dict__[key] = val
                 pass
-        except FileNotFoundError:
+        except (FileNotFoundError, JSONDecodeError):
             return False
 
         return True
@@ -60,7 +87,7 @@ class Settings(metaclass=Singleton):
     def save(self):
         try:
             with open("config.json", "w") as file:
-                json.dump(self.__dict__, file)
+                json.dump(self.serialize(), file)
         except IOError:
             pass
 
