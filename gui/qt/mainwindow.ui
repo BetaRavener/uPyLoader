@@ -491,8 +491,15 @@
     <addaction name="actionTerminal"/>
     <addaction name="actionCode_Editor"/>
    </widget>
+   <widget class="QMenu" name="menuOptions">
+    <property name="title">
+     <string>Options</string>
+    </property>
+    <addaction name="actionSettings"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
+   <addaction name="menuOptions"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionNavigate">
@@ -518,6 +525,11 @@
   <action name="actionFlash">
    <property name="text">
     <string>Flash firmware</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>

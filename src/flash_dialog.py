@@ -16,8 +16,8 @@ class FlashDialog(QDialog, Ui_FlashDialog):
     _flash_output_signal = pyqtSignal()
     _flash_finished_signal = pyqtSignal(int)
 
-    def __init__(self):
-        super(FlashDialog, self).__init__(None, Qt.WindowCloseButtonHint)
+    def __init__(self, parent):
+        super(FlashDialog, self).__init__(parent, Qt.WindowCloseButtonHint)
         self.setupUi(self)
         self.setModal(True)
 
@@ -27,8 +27,8 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         self._flash_output_mutex = Lock()
         self._flashing = False
 
-        if Settings.python_flash_executable:
-            self.pythonPathEdit.setText(Settings.python_flash_executable)
+        if Settings().python_flash_executable:
+            self.pythonPathEdit.setText(Settings().python_flash_executable)
 
         self.pickPythonButton.clicked.connect(self._pick_python)
         self.pickFirmwareButton.clicked.connect(self._pick_firmware)
@@ -67,19 +67,19 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         path = p[0]
         if path:
             self.pythonPathEdit.setText(path)
-            Settings.python_flash_executable = path
+            Settings().python_flash_executable = path
 
     def _pick_firmware(self):
         firmware_dir = None
-        if Settings.last_firmware_directory:
-            firmware_dir = Settings.last_firmware_directory
+        if Settings().last_firmware_directory:
+            firmware_dir = Settings().last_firmware_directory
 
         p = QFileDialog.getOpenFileName(parent=self, caption="Select python executable",
                                         directory=firmware_dir, filter="*.bin")
         path = p[0]
         if path:
             self.firmwarePathEdit.setText(path)
-            Settings.last_firmware_directory = "/".join(path.split("/")[0:-1])
+            Settings().last_firmware_directory = "/".join(path.split("/")[0:-1])
 
     def _show_wiring(self):
         wiring = "RST\t-> RTS\n" \
@@ -110,7 +110,7 @@ class FlashDialog(QDialog, Ui_FlashDialog):
             params = [python_path, "flash.py", self._port, firmware_file]
             if erase_flash:
                 params.append("--erase")
-            if Settings.debug_mode:
+            if Settings().debug_mode:
                 params.append("--debug")
             sub = subprocess.Popen(params, stdout=subprocess.PIPE, bufsize=1)
         except FileNotFoundError:

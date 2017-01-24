@@ -12,9 +12,9 @@ from src.file_transfer import FileTransfer
 from src.file_transfer_dialog import FileTransferDialog
 from src.flash_dialog import FlashDialog
 from src.ip_helper import IpHelper
-from src.logger import Logger
 from src.serial_connection import SerialConnection
 from src.setting import Settings
+from src.settings_dialog import SettingsDialog
 from src.terminal import Terminal
 from src.terminal_dialog import TerminalDialog
 from src.wifi_connection import WifiConnection
@@ -29,20 +29,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.setAttribute(Qt.WA_QuitOnClose)
 
+        geometry = Settings().retrieve_geometry("main")
+        if geometry:
+            self.restoreGeometry(geometry)
+
         self._connection_scanner = ConnectionScanner()
         self._connection = None
-        self._root_dir = Settings.root_dir
+        self._root_dir = Settings().root_dir
+        self._root_dir = Settings().root_dir
         self._mcu_files_model = None
         self._terminal = Terminal()
         self._terminal_dialog = None
         self._code_editor = None
         self._flash_dialog = None
+        self._settings_dialog = None
 
         self.actionNavigate.triggered.connect(self.navigate_directory)
         self.actionTerminal.triggered.connect(self.open_terminal)
         self.actionCode_Editor.triggered.connect(self.open_code_editor)
         self.actionUpload.triggered.connect(self.upload_transfer_scripts)
         self.actionFlash.triggered.connect(self.open_flash_dialog)
+        self.actionSettings.triggered.connect(self.open_settings_dialog)
 
         self.connectionComboBox.currentIndexChanged.connect(self.connection_changed)
         self.refreshButton.clicked.connect(self.refresh_ports)
@@ -74,8 +81,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.disconnected()
 
     def closeEvent(self, event):
-        Settings.root_dir = self._root_dir
-        Settings.save()
+        Settings().root_dir = self._root_dir
+        Settings().update_geometry("main", self.saveGeometry())
+        Settings().save()
         if self._connection is not None and self._connection.is_connected():
             self.end_connection()
         if self._terminal_dialog:
@@ -226,6 +234,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def end_connection(self):
         self._connection.disconnect()
         self._connection = None
+
         self.disconnected()
 
     def show_presets(self):
@@ -364,7 +373,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def open_terminal(self):
         if self._terminal_dialog is not None:
             return
-        self._terminal_dialog = TerminalDialog(self._connection, self._terminal)
+        self._terminal_dialog = TerminalDialog(self, self._connection, self._terminal)
         self._terminal_dialog.finished.connect(self.close_terminal)
         self._terminal_dialog.show()
 
@@ -374,7 +383,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def open_code_editor(self):
         if self._code_editor is not None:
             return
-        self._code_editor = CodeEditDialog(self._connection)
+        self._code_editor = CodeEditDialog(self, self._connection)
         self._code_editor.mcu_file_saved.connect(self.list_mcu_files)
         self._code_editor.finished.connect(self.close_code_editor)
         self._code_editor.show()
@@ -385,13 +394,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def open_flash_dialog(self):
         if self._code_editor is not None:
             return
-        self._flash_dialog = FlashDialog()
+        self._flash_dialog = FlashDialog(self)
         self._flash_dialog.finished.connect(self.close_flash_dialog)
         self._flash_dialog.show()
 
     def close_flash_dialog(self):
         self._flash_dialog = None
 
+    def open_settings_dialog(self):
+        if self._settings_dialog is not None:
+            return
+        self._settings_dialog = SettingsDialog(self)
+        self._settings_dialog.finished.connect(self.close_settings_dialog)
+        self._settings_dialog.show()
+
+    def close_settings_dialog(self):
+        self._settings_dialog = None
 
 # Main Function
 if __name__ == '__main__':
@@ -401,7 +419,7 @@ if __name__ == '__main__':
 
     try:
         sys.argv.index("--debug")
-        Settings.debug_mode = True
+        Settings().debug_mode = True
     except ValueError:
         pass
 

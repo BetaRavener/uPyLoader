@@ -54,13 +54,13 @@ class SerialConnection(Connection):
         assert isinstance(ending, str)
 
         self._serial.write((line_text + ending).encode('utf-8'))
-        time.sleep(Settings.send_sleep)
+        time.sleep(Settings().send_sleep)
 
     def send_character(self, char):
         assert isinstance(char, str)
 
         self._serial.write(char.encode('utf-8'))
-        time.sleep(Settings.send_sleep)
+        time.sleep(Settings().send_sleep)
 
     def read_line(self):
         x = self._serial.readline()
@@ -255,7 +255,7 @@ class SerialConnection(Connection):
             content = content.encode('utf-8')
 
         job_thread = Thread(target=self._write_file_job,
-                            args=(file_name, content, transfer, Settings.use_transfer_scripts))
+                            args=(file_name, content, transfer, Settings().use_transfer_scripts))
         job_thread.setDaemon(True)
         job_thread.start()
 
@@ -272,6 +272,6 @@ class SerialConnection(Connection):
         self._auto_reader_lock.release()
 
     def read_file(self, file_name, transfer):
-        job_thread = Thread(target=self._read_file_job, args=(file_name, transfer, Settings.use_transfer_scripts))
+        job_thread = Thread(target=self._read_file_job, args=(file_name, transfer, Settings().use_transfer_scripts))
         job_thread.setDaemon(True)
         job_thread.start()

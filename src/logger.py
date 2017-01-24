@@ -6,7 +6,7 @@ class Logger:
 
     @staticmethod
     def log(x):
-        if not Settings.debug_mode:
+        if not Settings().debug_mode:
             return
 
         if not Logger._log_file:

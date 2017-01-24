@@ -3,3 +3,4 @@ src/__pycache__/*
 gui/__pycache__/*
 config.txt
 log.txt
+*.json

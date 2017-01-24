@@ -3,6 +3,7 @@ from PyQt5.QtGui import QKeyEvent, QHideEvent, QFontDatabase, QTextCursor
 from PyQt5.QtWidgets import QDialog, QScrollBar
 
 from gui.terminal import Ui_TerminalDialog
+from src.setting import Settings
 from src.signal_interface import Listener
 
 __author__ = "Ivan Sevcik"
@@ -11,9 +12,13 @@ __author__ = "Ivan Sevcik"
 class TerminalDialog(QDialog, Ui_TerminalDialog):
     _update_content_signal = pyqtSignal()
 
-    def __init__(self, connection, terminal):
-        super(TerminalDialog, self).__init__(None, Qt.WindowCloseButtonHint)
+    def __init__(self, parent, connection, terminal):
+        super(TerminalDialog, self).__init__(parent, Qt.WindowCloseButtonHint)
         self.setupUi(self)
+
+        geometry = Settings().retrieve_geometry("terminal")
+        if geometry:
+            self.restoreGeometry(geometry)
 
         self.connection = connection
         self.terminal = terminal
@@ -43,6 +48,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         self._input_history_index = 0
 
     def closeEvent(self, event):
+        Settings().update_geometry("terminal", self.saveGeometry())
         if self.terminal_listener:
             self.terminal.add_event.disconnect(self.terminal_listener)
             self.terminal_listener = None
@@ -78,8 +84,6 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
             scrollbar.setValue(scrollbar.maximum())
         else:
             scrollbar.setValue(current_scroll)
-
-
 
     def eventFilter(self, target, event):
         if target == self.inputTextBox:

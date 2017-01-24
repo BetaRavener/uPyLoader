@@ -7,14 +7,19 @@ from PyQt5.QtWidgets import QProgressDialog, QMessageBox, QDialog
 from gui.code_edit import Ui_CodeEditDialog
 from src.file_transfer import FileTransfer
 from src.file_transfer_dialog import FileTransferDialog
+from src.setting import Settings
 
 
 class CodeEditDialog(QDialog, Ui_CodeEditDialog):
     mcu_file_saved = pyqtSignal()
 
-    def __init__(self, connection):
-        super(CodeEditDialog, self).__init__(None, Qt.WindowCloseButtonHint)
+    def __init__(self, parent, connection):
+        super(CodeEditDialog, self).__init__(parent, Qt.WindowCloseButtonHint)
         self.setupUi(self)
+
+        geometry = Settings().retrieve_geometry("editor")
+        if geometry:
+            self.restoreGeometry(geometry)
 
         self._connection = connection
 
@@ -30,6 +35,10 @@ class CodeEditDialog(QDialog, Ui_CodeEditDialog):
             self.connected(connection)
         else:
             self.disconnected()
+
+    def closeEvent(self, event):
+        Settings().update_geometry("editor", self.saveGeometry())
+        self.accept()
 
     def disconnected(self):
         self._connection = None

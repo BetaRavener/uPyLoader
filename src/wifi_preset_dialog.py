@@ -26,7 +26,7 @@ class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
 
     def update_preset_list(self):
         self.model.removeRows(0, self.model.rowCount())
-        for preset in Settings.wifi_presets:
+        for preset in Settings().wifi_presets:
             idx = self.model.rowCount()
             self.model.insertRow(idx)
             name, ip, port = preset
@@ -50,7 +50,7 @@ class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
             QMessageBox.warning(self, "Invalid IP", "The IP address has invalid format")
             return
 
-        Settings.wifi_presets.append((name, ip, port))
+        Settings().wifi_presets.append((name, ip, port))
         self.update_preset_list()
 
     def remove_preset(self):
@@ -59,7 +59,7 @@ class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
         if idx.row() < 0:
             return
 
-        Settings.wifi_presets.remove(Settings.wifi_presets[idx.row()])
+        Settings().wifi_presets.remove(Settings().wifi_presets[idx.row()])
         self.update_preset_list()
 
     def select_preset(self):
@@ -68,5 +68,5 @@ class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
         if idx.row() < 0:
             return
 
-        _, self.selected_ip, self.selected_port = Settings.wifi_presets[idx.row()]
+        _, self.selected_ip, self.selected_port = Settings().wifi_presets[idx.row()]
         self.accept()
