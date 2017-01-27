@@ -2,6 +2,7 @@ from PyQt5.QtCore import QEvent
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QKeyEvent, QHideEvent, QFontDatabase, QTextCursor
 from PyQt5.QtGui import QKeySequence
+from PyQt5.QtGui import QWindow
 from PyQt5.QtWidgets import QDialog, QScrollBar
 
 from gui.terminal import Ui_TerminalDialog
@@ -16,7 +17,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
     _update_content_signal = pyqtSignal()
 
     def __init__(self, parent, connection, terminal):
-        super(TerminalDialog, self).__init__(parent, Qt.WindowCloseButtonHint)
+        super(TerminalDialog, self).__init__(None, Qt.WindowCloseButtonHint)
         self.setupUi(self)
 
         geometry = Settings().retrieve_geometry("terminal")

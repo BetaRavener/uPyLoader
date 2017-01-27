@@ -89,8 +89,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self._connection is not None and self._connection.is_connected():
             self.end_connection()
         if self._terminal_dialog:
-            assert isinstance(self._terminal_dialog, QDialog)
             self._terminal_dialog.close()
+        if self._code_editor:
+            self._code_editor.close()
         event.accept()
 
     def connection_changed(self):

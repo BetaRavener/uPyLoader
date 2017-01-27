@@ -2,6 +2,7 @@ from time import sleep
 
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFontDatabase
+from PyQt5.QtGui import QWindow
 from PyQt5.QtWidgets import QProgressDialog, QMessageBox, QDialog
 
 from gui.code_edit import Ui_CodeEditDialog
@@ -14,7 +15,7 @@ class CodeEditDialog(QDialog, Ui_CodeEditDialog):
     mcu_file_saved = pyqtSignal()
 
     def __init__(self, parent, connection):
-        super(CodeEditDialog, self).__init__(parent, Qt.WindowCloseButtonHint)
+        super(CodeEditDialog, self).__init__(None, Qt.WindowCloseButtonHint)
         self.setupUi(self)
 
         geometry = Settings().retrieve_geometry("editor")
