@@ -189,6 +189,11 @@ class WifiConnection(Connection):
         self._auto_reader_lock.release()
 
     def _write_file_job(self, file_name, text, transfer):
+        def mark_error_and_release():
+            transfer.mark_error()
+            self._auto_read_enabled = True
+            self._auto_reader_lock.release()
+
         assert isinstance(transfer, FileTransfer)
         if isinstance(file_name, str):
             file_name = file_name.encode("utf-8")
@@ -205,10 +210,12 @@ class WifiConnection(Connection):
 
         self.ws.write(rec[:10])
         self.ws.write(rec[10:])
-        if self.read_resp(self.ws) != 0:
-            transfer.mark_error()
-            self._auto_read_enabled = True
-            self._auto_reader_lock.release()
+        try:
+            if self.read_resp(self.ws) != 0:
+                mark_error_and_release()
+                return
+        except TimeoutError:
+            mark_error_and_release()
             return
 
         cnt = 0

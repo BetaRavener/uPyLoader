@@ -79,29 +79,15 @@
           </property>
          </widget>
         </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="newLineKeyEdit"/>
+        </item>
         <item row="1" column="0">
          <widget class="QLabel" name="label_2">
           <property name="text">
            <string>Send key</string>
           </property>
          </widget>
-        </item>
-        <item row="3" column="0">
-         <widget class="QLabel" name="label_3">
-          <property name="text">
-           <string>Hold autoscroll</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="1">
-         <widget class="QCheckBox" name="holdAutoscrollCheckBox">
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QLineEdit" name="newLineKeyEdit"/>
         </item>
         <item row="1" column="1">
          <widget class="QLineEdit" name="sendKeyEdit"/>

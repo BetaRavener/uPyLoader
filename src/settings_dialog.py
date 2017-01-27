@@ -39,7 +39,6 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         self.newLineKeyEdit.setKeySequence(Settings().new_line_key)
         self.sendKeyEdit.setKeySequence(Settings().send_key)
         self.tabSpacesSpinBox.setValue(Settings().terminal_tab_spaces)
-        self.holdAutoscrollCheckBox.setChecked(Settings().terminal_hold_scroll)
 
         self.accepted.connect(self.save_settings)
 
@@ -58,7 +57,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         Settings().new_line_key = self.newLineKeyEdit.keySequence()
         Settings().send_key = self.sendKeyEdit.keySequence()
         Settings().terminal_tab_spaces = self.tabSpacesSpinBox.value()
-        Settings().terminal_hold_scroll = self.holdAutoscrollCheckBox.isChecked()
+        Settings().save()
 
     @staticmethod
     def one_key_sequence_edit(parent, name):

@@ -1,3 +1,4 @@
+from PyQt5.QtCore import QEvent
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QKeyEvent, QHideEvent, QFontDatabase, QTextCursor
 from PyQt5.QtGui import QKeySequence
@@ -24,11 +25,14 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
 
         self.connection = connection
         self.terminal = terminal
+        self._auto_scroll = True  # TODO: Settings?
         self.terminal_listener = Listener(self.emit_update_content)
         self._update_content_signal.connect(self.update_content)
         self.terminal.add_event.connect(self.terminal_listener)
 
-        self.outputTextEdit.verticalScrollBar().sliderPressed.connect(lambda: self.autoscrollCheckBox.setChecked(False))
+        self.outputTextEdit.installEventFilter(self)
+        self.outputTextEdit.verticalScrollBar().sliderPressed.connect(self._stop_scrolling)
+        self.outputTextEdit.verticalScrollBar().sliderReleased.connect(self._scroll_released)
         self.outputTextEdit.verticalScrollBar().installEventFilter(self)
         self.inputTextBox.installEventFilter(self)
         self.clearButton.clicked.connect(self.clear_content)
@@ -43,11 +47,32 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         fixed_font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
         self.outputTextEdit.setFont(fixed_font)
         self.inputTextBox.setFont(fixed_font)
-        self.autoscrollCheckBox.setChecked(True)
+        self.autoscrollCheckBox.setChecked(self._auto_scroll)
+        self.autoscrollCheckBox.stateChanged.connect(self._auto_scroll_changed)
 
         self.terminal.read()
-        self.outputTextEdit.setText(self.terminal.history)
+        self.outputTextEdit.setText(TerminalDialog.process_backspaces(self.terminal.history))
         self._input_history_index = 0
+
+    def _stop_scrolling(self):
+        self._auto_scroll = False
+
+    def _scroll_released(self):
+        if not self.autoscrollCheckBox.isChecked():
+            self._auto_scroll = False
+            return
+
+        scrollbar = self.outputTextEdit.verticalScrollBar()
+        assert isinstance(scrollbar, QScrollBar)
+        current_scroll = scrollbar.value()
+        self._auto_scroll = current_scroll >= scrollbar.maximum()
+
+    def _auto_scroll_changed(self, state):
+        self._auto_scroll = self.autoscrollCheckBox.isChecked()
+
+    @staticmethod
+    def process_backspaces(text):
+        return text
 
     def closeEvent(self, event):
         Settings().update_geometry("terminal", self.saveGeometry())
@@ -74,26 +99,31 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         assert isinstance(scrollbar, QScrollBar)
         # Preserve scroll while updating content
         current_scroll = scrollbar.value()
-        scrolling = scrollbar.isSliderDown()
 
         prev_cursor = self.outputTextEdit.textCursor()
         self.outputTextEdit.moveCursor(QTextCursor.End)
         self.outputTextEdit.insertPlainText(new_content)
         self.outputTextEdit.setTextCursor(prev_cursor)
 
-        if self.autoscrollCheckBox.isChecked() and not scrolling:
+        if self._auto_scroll:
             scrollbar.setValue(scrollbar.maximum())
         else:
             scrollbar.setValue(current_scroll)
 
     def eventFilter(self, target, event):
+        def match(s1, s2):
+            for x in s2:
+                if s1.matches(x) == QKeySequence.ExactMatch:
+                    return True
+            return False
+
         if target == self.inputTextBox:
             if isinstance(event, QKeyEvent):
                 if event.type() == QKeyEvent.KeyPress:
                     event_sequence = QtHelper.key_event_sequence(event)
-                    if event_sequence.matches(Settings().new_line_key) != QKeySequence.NoMatch:
+                    if match(event_sequence, Settings().new_line_key):
                         return False
-                    if event_sequence.matches(Settings().send_key) != QKeySequence.NoMatch:
+                    if match(event_sequence, Settings().send_key):
                         self.send_input()
                         return True
                     if event.key() == Qt.Key_Tab:
@@ -109,7 +139,13 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
                             self._input_history_index += 1
                             self.inputTextBox.clear()
                             self.inputTextBox.setPlainText(self.terminal.input(self._input_history_index))
-
+        elif target == self.outputTextEdit:
+            if isinstance(event, QKeyEvent):
+                if event.type() == QEvent.KeyPress:
+                    t = event.text()
+                    if t:
+                        self.connection.send_character(t)
+                        return True
         elif target == self.outputTextEdit.verticalScrollBar():
             if isinstance(event, QHideEvent):
                 return True
