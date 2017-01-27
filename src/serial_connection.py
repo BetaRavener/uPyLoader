@@ -68,7 +68,6 @@ class SerialConnection(Connection):
         x = self._serial.readline()
 
         if x and self._terminal is not None:
-            #TODO: Also in wireless
             if x == b'\x08\x1b[K':
                 x = b'\x08'
 

@@ -22,6 +22,8 @@ class WifiConnection(Connection):
         Connection.__init__(self, terminal)
         self._host = host
         self._port = port
+        self.s = None
+        self.ws = None
 
         if not self._start_connection():
             return
@@ -42,7 +44,11 @@ class WifiConnection(Connection):
             return False
         self.s.settimeout(None)
 
-        websocket_helper.client_handshake(self.s)
+        # Test if connection is working
+        try:
+            websocket_helper.client_handshake(self.s)
+        except (ConnectionResetError, ConnectionAbortedError):
+            return False
 
         self.ws = WebSocket(self.s)
         return True
@@ -105,10 +111,13 @@ class WifiConnection(Connection):
         return x
 
     def read_line(self):
-        x = self.ws.read_all(0.2).decode("utf-8", errors="replace")
+        x = self.ws.read_all(0.2)
 
         if x and self._terminal is not None:
-            self._terminal.add(x)
+            if x == b'\x08\x1b[K':
+                x = b'\x08'
+
+            self._terminal.add(x.decode("utf-8", errors="replace"))
 
         return x
 

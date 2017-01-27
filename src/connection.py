@@ -77,7 +77,7 @@ class Connection:
             if self._auto_read_enabled:
                 x = self.read_line()
             self._auto_reader_lock.release()
-            time.sleep(0.01 if x == "" else 0)
+            time.sleep(0.1 if not x else 0)
 
     @staticmethod
     def _get_remote_file_name(local_file_path):

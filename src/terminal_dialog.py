@@ -72,7 +72,14 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
 
     @staticmethod
     def process_backspaces(text):
-        return text
+        processed = ""
+        for x in text:
+            # Delete character there are any characters that are not backspaces
+            if x == "\b" and processed and processed[-1:] != "\b":
+                processed = processed[:-1]
+            else:
+                processed += x
+        return processed
 
     def closeEvent(self, event):
         Settings().update_geometry("terminal", self.saveGeometry())
@@ -92,6 +99,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
 
     def update_content(self):
         new_content = self.terminal.read()
+        new_content = self.process_backspaces(new_content)
         if not new_content:
             return
 
@@ -102,7 +110,14 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
 
         prev_cursor = self.outputTextEdit.textCursor()
         self.outputTextEdit.moveCursor(QTextCursor.End)
-        self.outputTextEdit.insertPlainText(new_content)
+        # Use any backspaces that were left in input to delete text
+        cut = 0
+        for x in new_content:
+            if x != "\b":
+                break
+            self.outputTextEdit.textCursor().deletePreviousChar()
+            cut += 1
+        self.outputTextEdit.insertPlainText(new_content[cut:])
         self.outputTextEdit.setTextCursor(prev_cursor)
 
         if self._auto_scroll:
@@ -145,7 +160,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
                     t = event.text()
                     if t:
                         self.connection.send_character(t)
-                        return True
+                    return True
         elif target == self.outputTextEdit.verticalScrollBar():
             if isinstance(event, QHideEvent):
                 return True
