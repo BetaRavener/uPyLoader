@@ -34,7 +34,8 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         self.pickFirmwareButton.clicked.connect(self._pick_firmware)
         self.refreshButton.clicked.connect(self._refresh_ports)
         self.wiringButton.clicked.connect(self._show_wiring)
-        self.flashButton.clicked.connect(self._flash)
+        self.eraseButton.clicked.connect(lambda: self._start(False, True))
+        self.flashButton.clicked.connect(lambda: self._start(True, False))
 
         self._flash_output_signal.connect(self._update_output)
         self._flash_finished_signal.connect(self._flash_finished)
@@ -58,8 +59,10 @@ class FlashDialog(QDialog, Ui_FlashDialog):
             for port in self._connection_scanner.port_list:
                 self.portComboBox.addItem(port)
             self.portComboBox.setCurrentIndex(0)
+            self.eraseButton.setEnabled(True)
             self.flashButton.setEnabled(True)
         else:
+            self.eraseButton.setEnabled(False)
             self.flashButton.setEnabled(False)
 
     def _pick_python(self):
@@ -107,7 +110,9 @@ class FlashDialog(QDialog, Ui_FlashDialog):
 
     def _flash_job(self, python_path, firmware_file, erase_flash):
         try:
-            params = [python_path, "flash.py", self._port, firmware_file]
+            params = [python_path, "flash.py", self._port]
+            if firmware_file:
+                params.append("--fw={}".format(firmware_file))
             if erase_flash:
                 params.append("--erase")
             if Settings().debug_mode:
@@ -119,11 +124,19 @@ class FlashDialog(QDialog, Ui_FlashDialog):
 
         buf = bytearray()
         delete = 0
-        Logger.log("Pipe receiving:\n")
+        Logger.log("Pipe receiving:\r\n")
         while True:
             x = sub.stdout.read(1)
             Logger.log(x)
-            if not x or (x[0] == 8 and delete == 0) or (x[0] != 8 and (x[0] in b"\r\n\t ")):
+
+            # Flushing content only in large blocks helps with flickering
+            # Flush output if:
+            # - didn't receive any character (timeout?)
+            # - received first backspace (content is going to be deleted)
+            # - received whitespace or dot (used to signal progress)
+            if not x \
+                    or (x[0] == 8 and delete == 0)\
+                    or (x[0] in b"\r\n\t ."):
                 with self._flash_output_mutex:
                     if delete > 0:
                         self._flash_output = self._flash_output[:-delete]
@@ -140,33 +153,35 @@ class FlashDialog(QDialog, Ui_FlashDialog):
             else:
                 buf.append(x[0])
 
-        Logger.log("Pipe end.\n")
+        Logger.log("\r\nPipe end.\r\n")
         sub.stdout.close()
         code = sub.wait()
 
         self._flash_finished_signal.emit(code)
 
-    def _flash(self):
+    def _start(self, flash, erase):
         self._flash_output = bytearray()
         self.outputEdit.setPlainText("")
         python_path = self.pythonPathEdit.text()
         if not python_path:
             QMessageBox.critical(self, "Error", "Python2 path was not set.")
             return
-        firmware_file = self.firmwarePathEdit.text()
-        if not firmware_file:
-            QMessageBox.critical(self, "Error", "Firmware file was not set.")
-            return
-        erase_flash = self.eraseFlashCheckbox.isChecked()
+        firmware_file = None
+        if flash:
+            firmware_file = self.firmwarePathEdit.text()
+            if not firmware_file:
+                QMessageBox.critical(self, "Error", "Firmware file was not set.")
+                return
         self._port = self._connection_scanner.port_list[self.portComboBox.currentIndex()]
-        job_thread = Thread(target=self._flash_job, args=[python_path, firmware_file, erase_flash])
+        job_thread = Thread(target=self._flash_job, args=[python_path, firmware_file, erase])
         job_thread.setDaemon(True)
         job_thread.start()
+        self.eraseButton.setEnabled(False)
         self.flashButton.setEnabled(False)
         self._flashing = True
 
     def _flash_finished(self, code):
-        Logger.log("Flash output contents:\n")
+        Logger.log("Flash output contents:\r\n")
         Logger.log(self._flash_output)
 
         if code == 0:
@@ -188,5 +203,6 @@ class FlashDialog(QDialog, Ui_FlashDialog):
             QMessageBox.critical(self, "Flashing Error", "Failed to run script.\nCheck that path to python is correct.")
         else:
             QMessageBox.critical(self, "Flashing Error", "Failed to flash new firmware")
+        self.eraseButton.setEnabled(True)
         self.flashButton.setEnabled(True)
         self._flashing = False

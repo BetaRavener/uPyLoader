@@ -8,6 +8,7 @@ import math
 from src import websocket_helper
 from src.connection import Connection
 from src.file_transfer import FileTransfer
+from src.password_exception import PasswordException, NewPasswordException
 from src.websocket import WebSocket
 
 
@@ -17,43 +18,72 @@ class WifiConnection(Connection):
     WEBREPL_GET_FILE = 2
     WEBREPL_GET_VER = 3
 
-    def __init__(self, host, port, terminal, ask_for_password):
+    def __init__(self, host, port, terminal, password_prompt):
         Connection.__init__(self, terminal)
+        self._host = host
+        self._port = port
 
+        if not self._start_connection():
+            return
+
+        if not self.handle_password(password_prompt):
+            self._clear()
+            raise PasswordException()
+
+        self._reader_thread = Thread(target=self._reader_thread_routine)
+        self._reader_thread.start()
+
+    def _start_connection(self):
         self.s = socket.socket()
         self.s.settimeout(3)
-        errno = self.s.connect_ex((host, port))
+        errno = self.s.connect_ex((self._host, self._port))
         if errno != 0:
             self._clear()
-            return
+            return False
         self.s.settimeout(None)
 
         websocket_helper.client_handshake(self.s)
 
         self.ws = WebSocket(self.s)
-        self.login(ask_for_password())
-        try:
-            self.read_all()
-        except:
-            self._clear()
-            return
-
-        self._reader_thread = Thread(target=self._reader_thread_routine)
-        self._reader_thread.start()
+        return True
 
     def _clear(self):
         self.ws = None
         self.s.close()
         self.s = None
 
-    def login(self, password):
-        while True:
-            c = self.ws.read(1)
-            if c == b":":
-                assert self.ws.read(1) == b" "
-                break
-
+    def set_password(self):
+        password = "passw"
         self.ws.write(password.encode("utf-8") + b"\r")
+        response = self.ws.read_all().decode("utf-8")
+        if response.find("Confirm password:") < 0:
+            return False
+        self.ws.write(password.encode("utf-8") + b"\r")
+        try:
+            response = self.ws.read_all().decode("utf-8")
+            return response.find("Password successfully set") >= 0
+        except ConnectionAbortedError:
+            # If connection was aborted, password was set
+            return True
+
+    def login(self, password):
+        self.ws.write(password.encode("utf-8") + b"\r")
+        try:
+            response = self.ws.read_all().decode("utf-8")
+            return response.find("WebREPL connected") >= 0
+        except ConnectionAbortedError:
+            return False
+
+    def handle_password(self, password_prompt):
+        content = self.ws.read_all().decode("utf-8")
+
+        if content.find("New password:") >= 0:
+            self.set_password()
+            raise NewPasswordException()
+        elif content.find("Password:") >= 0:
+            return self.login(password_prompt("Enter WebREPL password"))
+        else:
+            return False
 
     def is_connected(self):
         return self.ws is not None
@@ -85,6 +115,12 @@ class WifiConnection(Connection):
     def read_junk(self):
         self.ws.read_all(0)
 
+    def read_to_next_prompt(self):
+        ret = b""
+        while len(ret) < 4 or ret[-4:] != b">>> ":
+            ret += self.ws.read(1)
+        return ret.decode("utf-8", errors="replace")
+
     def send_character(self, char):
         assert isinstance(char, str)
         self.ws.write(char)
@@ -99,14 +135,15 @@ class WifiConnection(Connection):
         self._auto_read_enabled = False
         self.read_junk()
         self.ws.write("import os;os.listdir()\r\n")
-        ret = self.read_all()
+        ret = self.read_to_next_prompt()
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
         if not ret:
             return []  # TODO: Error
         return re.findall("'([^']+)'", ret)
 
-    def read_resp(self, ws):
+    @staticmethod
+    def read_resp(ws):
         data = ws.read(4)
         sig, code = struct.unpack("<2sH", data)
         assert sig == b"WB"
@@ -115,6 +152,8 @@ class WifiConnection(Connection):
     # TODO: Edit protocol to send total length so progress can be set correctly
     def _read_file_job(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
+        if isinstance(file_name, str):
+            file_name = file_name.encode("utf-8")
 
         ret = b""
         rec = struct.pack(WifiConnection.WEBREPL_REQ_S, b"WA", WifiConnection.WEBREPL_GET_FILE, 0, 0, 0, len(file_name),
@@ -149,18 +188,14 @@ class WifiConnection(Connection):
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
-    def read_file(self, file_name, transfer):
+    def _write_file_job(self, file_name, text, transfer):
+        assert isinstance(transfer, FileTransfer)
         if isinstance(file_name, str):
             file_name = file_name.encode("utf-8")
+        if isinstance(text, str):
+            text = text.encode("utf-8")
 
-        job_thread = Thread(target=self._read_file_job, args=(file_name, transfer))
-        job_thread.setDaemon(True)
-        job_thread.start()
-
-    def _write_file_job(self, file_name, file_bytes, transfer):
-        assert isinstance(transfer, FileTransfer)
-
-        sz = len(file_bytes)
+        sz = len(text)
         rec = struct.pack(WifiConnection.WEBREPL_REQ_S, b"WA", WifiConnection.WEBREPL_PUT_FILE, 0, 0, sz,
                           len(file_name), file_name)
 
@@ -178,7 +213,7 @@ class WifiConnection(Connection):
 
         cnt = 0
         while True:
-            buf = file_bytes[cnt:cnt + 256]
+            buf = text[cnt:cnt + 256]
             if not buf:
                 break
             self.ws.write(buf)
@@ -192,13 +227,4 @@ class WifiConnection(Connection):
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
-    def write_file(self, file_name, text, transfer):
-        if isinstance(file_name, str):
-            file_name = file_name.encode("utf-8")
-        if isinstance(text, str):
-            text = text.encode("utf-8")
 
-        job_thread = Thread(target=self._write_file_job,
-                            args=(file_name, text, transfer))
-        job_thread.setDaemon(True)
-        job_thread.start()

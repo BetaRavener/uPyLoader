@@ -14,9 +14,11 @@ class FileTransferDialog(QDialog, Ui_FileTransferDialog):
     DOWNLOAD = 1
 
     def __init__(self, type):
-        super(FileTransferDialog, self).__init__(None, Qt.WindowCloseButtonHint)
+        super(FileTransferDialog, self).__init__(None, Qt.WindowTitleHint)
         self.setupUi(self)
         self.setModal(True)
+
+        self._transfer = FileTransfer(lambda: self._update_signal.emit())
 
         if type == FileTransferDialog.UPLOAD:
             self.label.setText("Saving file.")
@@ -27,11 +29,11 @@ class FileTransferDialog(QDialog, Ui_FileTransferDialog):
 
         self.progressBar.setValue(0)
         self._update_signal.connect(self._update_progress)
-        self._transfer = FileTransfer(lambda: self._update_signal.emit())
+        self.cancelButton.clicked.connect(self._transfer.cancel)
 
     def _update_progress(self):
         if self._transfer.error:
-            QMessageBox.critical(self, "Error", "File transfer failed.")
+            QMessageBox().critical(self, "Error", "File transfer failed.", QMessageBox.Ok)
             self.reject()
         elif self._transfer.finished:
             sleep(0.5)

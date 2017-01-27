@@ -291,7 +291,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QTreeView" name="treeView">
+         <widget class="QTreeView" name="localFilesTreeView">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -315,6 +315,9 @@
             <width>0</width>
             <height>0</height>
            </size>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::ExtendedSelection</enum>
           </property>
          </widget>
         </item>
@@ -373,7 +376,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QListView" name="listView">
+         <widget class="QListView" name="mcuFilesListView">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
             <horstretch>0</horstretch>

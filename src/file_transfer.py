@@ -9,7 +9,8 @@ class FileTransfer:
         self._progress = 0
         self._file = 0
         self._file_count = 1
-        self.cancelled = False
+        self._cancel_sheduled = False
+        self._cancelled = False
         self._finished = False
         self._error = False
         self._signal = signal
@@ -34,6 +35,21 @@ class FileTransfer:
             self._finished = True
         else:
             self._progress = 0
+        self._signal()
+
+    def cancel(self):
+        self._cancel_sheduled = True
+
+    @property
+    def cancel_sheduled(self):
+        return self._cancel_sheduled
+
+    @property
+    def cancelled(self):
+        return self._cancelled
+
+    def confirm_cancel(self):
+        self._cancelled = True
         self._signal()
 
     @property

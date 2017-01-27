@@ -11,8 +11,10 @@ from src.singleton import Singleton
 
 
 class Settings(metaclass=Singleton):
+    newest_version = 101
+
     def __init__(self):
-        self.version = 100
+        self.version = 100  # Assume oldest config
         self.root_dir = QDir().currentPath()
         self.send_sleep = 0.1
         self.read_sleep = 0.1
@@ -22,11 +24,20 @@ class Settings(metaclass=Singleton):
         self.last_firmware_directory = None
         self.debug_mode = False
         self._geometries = {}
+        self.external_editor_path = None
+        self.external_editor_args = None
         self.new_line_key = QKeySequence(Qt.SHIFT + Qt.Key_Return, Qt.SHIFT + Qt.Key_Enter)
         self.send_key = QKeySequence(Qt.Key_Return, Qt.Key_Enter)
+        self.terminal_tab_spaces = 4
+        self.terminal_hold_scroll = True
 
         if not self.load():
-            self.load_old()
+            if not self.load_old():
+                # No config found, init at newest version
+                self.version = Settings.newest_version
+                return
+
+        self._update_config()
 
     def serialize(self):
         serialized = {}
@@ -53,11 +64,19 @@ class Settings(metaclass=Singleton):
             with open("config.json") as file:
                 for key, val in self.deserialize(json.load(file)).items():
                     self.__dict__[key] = val
-                pass
         except (FileNotFoundError, JSONDecodeError):
             return False
 
         return True
+
+    def _update_config(self):
+        if self.version < 101:
+            # Presets now have password, add it if missing
+            for preset in self.wifi_presets:
+                if len(preset) == 3:
+                    preset.append(None)
+
+        self.version = Settings.newest_version
 
     def load_old(self):
         try:

@@ -31,8 +31,10 @@ class SerialConnection(Connection):
                 while not x.endswith(">>>"):
                     x += self._serial.read().decode('utf-8', errors="ignore")
             self.send_kill()
-        except (OSError, serial.SerialException):
+        except (OSError, serial.SerialException) as e:
             self._serial = None
+            return
+        except Exception as e:
             return
 
         self._reader_thread = Thread(target=self._reader_thread_routine)
@@ -97,6 +99,12 @@ class SerialConnection(Connection):
     def read_junk(self):
         self.read_all()
 
+    def read_to_next_prompt(self):
+        ret = b""
+        while len(ret) < 4 or ret[-4:] != b">>> ":
+            ret += self._serial.read(1)
+        return ret.decode("utf-8", errors="replace")
+
     def list_files(self):
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
@@ -104,8 +112,7 @@ class SerialConnection(Connection):
         self.read_junk()
         self.send_line("import os; os.listdir()")
         self._serial.flush()
-
-        ret = self.read_all()
+        ret = self.read_to_next_prompt()
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
         return re.findall("'([^']+)'", ret)
@@ -238,10 +245,13 @@ class SerialConnection(Connection):
             transfer.mark_error()
             transfer.read_result.binary_data = None
 
-    def _write_file_job(self, file_name, text, transfer, use_script):
+    def _write_file_job(self, file_name, text, transfer):
+        if isinstance(text, str):
+            text = text.encode('utf-8')
+
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
-        if use_script:
+        if Settings().use_transfer_scripts:
             self.run_file("__upload.py", "file_name=\"{}\"".format(file_name))
         else:
             self.send_upload_file(file_name)
@@ -250,19 +260,10 @@ class SerialConnection(Connection):
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
-    def write_file(self, file_name, content, transfer):
-        if isinstance(content, str):
-            content = content.encode('utf-8')
-
-        job_thread = Thread(target=self._write_file_job,
-                            args=(file_name, content, transfer, Settings().use_transfer_scripts))
-        job_thread.setDaemon(True)
-        job_thread.start()
-
-    def _read_file_job(self, file_name, transfer, use_script):
+    def _read_file_job(self, file_name, transfer):
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
-        if use_script:
+        if Settings().use_transfer_scripts:
             self.run_file("__download.py", "file_name=\"{}\"".format(file_name))
         else:
             self.send_download_file(file_name)
@@ -270,8 +271,3 @@ class SerialConnection(Connection):
         self.recv_file(transfer)
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
-
-    def read_file(self, file_name, transfer):
-        job_thread = Thread(target=self._read_file_job, args=(file_name, transfer, Settings().use_transfer_scripts))
-        job_thread.setDaemon(True)
-        job_thread.start()

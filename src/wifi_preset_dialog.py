@@ -15,6 +15,7 @@ class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
 
         self.selected_ip = None
         self.selected_port = None
+        self.selected_password = None
 
         self.presetsListView.doubleClicked.connect(self.select_preset)
         self.addButton.clicked.connect(self.add_preset)
@@ -29,7 +30,7 @@ class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
         for preset in Settings().wifi_presets:
             idx = self.model.rowCount()
             self.model.insertRow(idx)
-            name, ip, port = preset
+            name, ip, port, _ = preset
             text = "{}\nIP: {}    Port: {}".format(name, ip, port)
             self.model.setData(self.model.index(idx), text)
 
@@ -41,16 +42,20 @@ class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
         name = self.nameLineEdit.text()
         ip = self.ipLineEdit.text()
         port = self.portSpinBox.value()
+        password = self.passwordLineEdit.text()
+        # Make sure password is non if empty
+        if not password:
+            password = None
 
         if not name:
-            QMessageBox.warning(self, "Missing name", "Fill the name of preset")
+            QMessageBox().warning(self, "Missing name", "Fill the name of preset", QMessageBox.Ok)
             return
 
         if not IpHelper.is_valid_ipv4(ip):
-            QMessageBox.warning(self, "Invalid IP", "The IP address has invalid format")
+            QMessageBox().warning(self, "Invalid IP", "The IP address has invalid format", QMessageBox.Ok)
             return
 
-        Settings().wifi_presets.append((name, ip, port))
+        Settings().wifi_presets.append((name, ip, port, password))
         self.update_preset_list()
 
     def remove_preset(self):
@@ -68,5 +73,5 @@ class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
         if idx.row() < 0:
             return
 
-        _, self.selected_ip, self.selected_port = Settings().wifi_presets[idx.row()]
+        _, self.selected_ip, self.selected_port, self.selected_password = Settings().wifi_presets[idx.row()]
         self.accept()

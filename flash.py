@@ -1,4 +1,5 @@
 import esptool
+import argparse
 from time import sleep
 
 import sys
@@ -33,19 +34,17 @@ def flash(port, firmware_file, erase_flash):
         esp.connect()
 
         # Erase flash
-        esptool.erase_flash(esp, None)
-        # Wait for flash erase
-        for i in xrange(10):
-            print ".",
-            sleep(1)
-        print "\nDone erasing flash."
+        esptool.erase_flash(esp, args)
+
+    if not firmware_file:
+        return
 
     # Reconnect
     esp.connect()
 
     # Prepare arguments for writing flash
     address = 0
-    args.flash_size = "8m"
+    args.flash_size = "detect"
     args.addr_filename = [(address, open(firmware_file, "rb"))]
 
     # Write flash
@@ -54,16 +53,19 @@ def flash(port, firmware_file, erase_flash):
 
 if __name__ == '__main__':
     try:
-        port = sys.argv[1]
-        firmware_file = sys.argv[2]
-        erase_flash = len(sys.argv) >= 4 and sys.argv[3] == "--erase"
-        debug = len(sys.argv) >= 5 and sys.argv[4] == "--debug"
-        if debug:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('port', type=str)
+        parser.add_argument('--fw', type=str, action='store')
+        parser.add_argument('--erase', action='store_true')
+        parser.add_argument('--debug', action='store_true')
+        args = parser.parse_args()
+
+        if args.debug:
             print "Character test: "
             for i in range(0, 256):
                 print chr(i),
             print ""
-        flash(port, firmware_file, erase_flash)
-    except:
+        flash(args.port, args.fw, args.erase)
+    except Exception as e:
         exit(1)
     exit(0)

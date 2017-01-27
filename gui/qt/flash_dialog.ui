@@ -113,13 +113,6 @@
     </layout>
    </item>
    <item>
-    <widget class="QCheckBox" name="eraseFlashCheckbox">
-     <property name="text">
-      <string>Erase flash</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_4">
      <property name="topMargin">
       <number>0</number>
@@ -228,11 +221,25 @@
     </widget>
    </item>
    <item>
-    <widget class="QPushButton" name="flashButton">
-     <property name="text">
-      <string>Flash</string>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <property name="topMargin">
+      <number>0</number>
      </property>
-    </widget>
+     <item>
+      <widget class="QPushButton" name="eraseButton">
+       <property name="text">
+        <string>Erase</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="flashButton">
+       <property name="text">
+        <string>Flash</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>

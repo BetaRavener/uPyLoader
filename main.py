@@ -1,3 +1,4 @@
+import subprocess
 import sys
 
 from PyQt5.QtCore import QStringListModel, QModelIndex, Qt
@@ -12,6 +13,7 @@ from src.file_transfer import FileTransfer
 from src.file_transfer_dialog import FileTransferDialog
 from src.flash_dialog import FlashDialog
 from src.ip_helper import IpHelper
+from src.password_exception import PasswordException, NewPasswordException
 from src.serial_connection import SerialConnection
 from src.setting import Settings
 from src.settings_dialog import SettingsDialog
@@ -36,13 +38,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._connection_scanner = ConnectionScanner()
         self._connection = None
         self._root_dir = Settings().root_dir
-        self._root_dir = Settings().root_dir
         self._mcu_files_model = None
         self._terminal = Terminal()
         self._terminal_dialog = None
         self._code_editor = None
         self._flash_dialog = None
         self._settings_dialog = None
+        self._preset_password = None
 
         self.actionNavigate.triggered.connect(self.navigate_directory)
         self.actionTerminal.triggered.connect(self.open_terminal)
@@ -66,14 +68,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.update_file_tree()
 
         self.listButton.clicked.connect(self.list_mcu_files)
-        self.listView.clicked.connect(self.mcu_file_selection_changed)
-        self.listView.doubleClicked.connect(self.read_mcu_file)
+        self.mcuFilesListView.clicked.connect(self.mcu_file_selection_changed)
+        self.mcuFilesListView.doubleClicked.connect(self.read_mcu_file)
         self.executeButton.clicked.connect(self.execute_mcu_code)
         self.removeButton.clicked.connect(self.remove_file)
         self.localPathEdit.setText(self._root_dir)
 
-        self.treeView.clicked.connect(self.local_file_selection_changed)
-        self.treeView.doubleClicked.connect(self.open_local_file)
+        self.localFilesTreeView.clicked.connect(self.local_file_selection_changed)
+        self.localFilesTreeView.doubleClicked.connect(self.open_local_file)
 
         self.transferToMcuButton.clicked.connect(self.transfer_to_mcu)
         self.transferToPcButton.clicked.connect(self.transfer_to_pc)
@@ -115,6 +117,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.statusLabel.setStyleSheet("QLabel { background-color : none; color : red; }")
         elif status == "Error":
             self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
+        elif status == "Password":
+            self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
+            status = "Wrong Password"
         self.statusLabel.setText(status)
 
     def disconnected(self):
@@ -124,13 +129,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connectionComboBox.setEnabled(True)
         self.baudComboBox.setEnabled(True)
         self.refreshButton.setEnabled(True)
-        self.listView.setEnabled(False)
+        self.mcuFilesListView.setEnabled(False)
         self.executeButton.setEnabled(False)
         self.removeButton.setEnabled(False)
         self.actionTerminal.setEnabled(False)
         self.actionUpload.setEnabled(False)
         self.transferToMcuButton.setEnabled(False)
         self.transferToPcButton.setEnabled(False)
+        # Clear terminal on disconnect
+        self._terminal.clear()
         if self._terminal_dialog:
             self._terminal_dialog.close()
         if self._code_editor:
@@ -144,7 +151,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connectionComboBox.setEnabled(False)
         self.baudComboBox.setEnabled(False)
         self.refreshButton.setEnabled(False)
-        self.listView.setEnabled(True)
+        self.mcuFilesListView.setEnabled(True)
         self.actionTerminal.setEnabled(True)
         if isinstance(self._connection, SerialConnection):
             self.actionUpload.setEnabled(True)
@@ -168,8 +175,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def update_file_tree(self):
         model = QFileSystemModel()
         model.setRootPath(self._root_dir)
-        self.treeView.setModel(model)
-        self.treeView.setRootIndex(model.index(self._root_dir))
+        self.localFilesTreeView.setModel(model)
+        self.localFilesTreeView.setRootIndex(model.index(self._root_dir))
 
     def list_mcu_files(self):
         file_list = self._connection.list_files()
@@ -180,31 +187,34 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._mcu_files_model.insertRow(idx)
             self._mcu_files_model.setData(self._mcu_files_model.index(idx), file)
 
-        self.listView.setModel(self._mcu_files_model)
+        self.mcuFilesListView.setModel(self._mcu_files_model)
         self.mcu_file_selection_changed()
 
     def execute_mcu_code(self):
-        idx = self.listView.currentIndex()
+        idx = self.mcuFilesListView.currentIndex()
         assert isinstance(idx, QModelIndex)
-        model = self.listView.model()
+        model = self.mcuFilesListView.model()
         assert isinstance(model, QStringListModel)
         file_name = model.data(idx, Qt.EditRole)
         self._connection.run_file(file_name)
 
     def remove_file(self):
-        idx = self.listView.currentIndex()
+        idx = self.mcuFilesListView.currentIndex()
         assert isinstance(idx, QModelIndex)
-        model = self.listView.model()
+        model = self.mcuFilesListView.model()
         assert isinstance(model, QStringListModel)
         file_name = model.data(idx, Qt.EditRole)
         self._connection.remove_file(file_name)
         self.list_mcu_files()
 
-    def ask_for_password(self):
-        input_dlg = QInputDialog(parent=self)
+    def ask_for_password(self, title, label="Password"):
+        if self._preset_password is not None:
+            return self._preset_password
+
+        input_dlg = QInputDialog(parent=self, flags=Qt.Dialog)
         input_dlg.setTextEchoMode(QLineEdit.Password)
-        input_dlg.setWindowTitle("Enter WebREPL password")
-        input_dlg.setLabelText("Password")
+        input_dlg.setWindowTitle(title)
+        input_dlg.setLabelText(label)
         input_dlg.resize(500, 100)
         input_dlg.exec()
         return input_dlg.textValue()
@@ -216,10 +226,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             ip_address = self.ipLineEdit.text()
             port = self.portSpinBox.value()
             if not IpHelper.is_valid_ipv4(ip_address):
-                QMessageBox.warning(self, "Invalid IP", "The IP address has invalid format")
+                QMessageBox().warning(self, "Invalid IP", "The IP address has invalid format", QMessageBox.Ok)
                 return
 
-            self._connection = WifiConnection(ip_address, port, self._terminal, lambda: self.ask_for_password())
+            try:
+                self._connection = WifiConnection(ip_address, port, self._terminal, self.ask_for_password)
+            except PasswordException:
+                self.set_status("Password")
+                return
+            except NewPasswordException:
+                QMessageBox().information(self, "Password set",
+                                          "WebREPL password was not previously configured, so it was set to "
+                                          "\"passw\" (without quotes). "
+                                          "You can change it in port_config.py (will require reboot to take effect). "
+                                          "Caution: Passwords longer than 9 characters will be truncated.\n\n"
+                                          "Continue by connecting again.", QMessageBox.Ok)
+                return
         else:
             baud_rate = BaudOptions.speeds[self.baudComboBox.currentIndex()]
             self._connection = SerialConnection(connection, baud_rate, self._terminal,
@@ -239,12 +261,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def show_presets(self):
         dialog = WiFiPresetDialog()
-        dialog.accepted.connect(lambda: self.use_preset(dialog.selected_ip, dialog.selected_port))
+        dialog.accepted.connect(lambda: self.use_preset(dialog.selected_ip,
+                                                        dialog.selected_port,
+                                                        dialog.selected_password))
         dialog.exec()
 
-    def use_preset(self, ip, port):
+    def use_preset(self, ip, port, password):
         self.ipLineEdit.setText(ip)
         self.portSpinBox.setValue(port)
+        self._preset_password = password
 
     def connect_pressed(self):
         if self._connection is not None and self._connection.is_connected():
@@ -258,7 +283,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def open_local_file(self, idx):
         assert isinstance(idx, QModelIndex)
-        model = self.treeView.model()
+        model = self.localFilesTreeView.model()
         assert isinstance(model, QFileSystemModel)
 
         if model.isDir(idx):
@@ -267,16 +292,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         local_path = model.filePath(idx)
         remote_path = local_path.rsplit("/", 1)[1]
         if local_path.endswith(".py"):
-            with open(local_path) as f:
-                text = "".join(f.readlines())
-                self.open_code_editor()
-                self._code_editor.set_code(local_path, remote_path, text)
+            if Settings().external_editor_path:
+                self.open_external_editor(local_path)
+            else:
+                with open(local_path) as f:
+                    text = "".join(f.readlines())
+                    self.open_code_editor()
+                    self._code_editor.set_code(local_path, remote_path, text)
         else:
             QMessageBox.information(self, "Unknown file", "Files without .py ending won't open"
                                                           " in editor, but can still be transferred.")
 
     def mcu_file_selection_changed(self):
-        idx = self.listView.currentIndex()
+        idx = self.mcuFilesListView.currentIndex()
         assert isinstance(idx, QModelIndex)
         if idx.row() >= 0:
             self.executeButton.setEnabled(True)
@@ -288,16 +316,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.transferToPcButton.setEnabled(False)
 
     def local_file_selection_changed(self):
-        idx = self.treeView.currentIndex()
-        assert isinstance(idx, QModelIndex)
-        model = self.treeView.model()
+        indices = self.localFilesTreeView.selectedIndexes()
+        model = self.localFilesTreeView.model()
         assert isinstance(model, QFileSystemModel)
 
-        if model.isDir(idx):
-            return
+        # Filter out all but first column (file name)
+        indices = [x for x in indices if x.column() == 0]
 
-        local_path = model.filePath(idx)
-        self.remoteNameEdit.setText(local_path.rsplit("/", 1)[1])
+        if len(indices) == 1:
+            idx = indices[0]
+            if model.isDir(idx):
+                return
+
+            local_path = model.filePath(idx)
+            self.remoteNameEdit.setText(local_path.rsplit("/", 1)[1])
+        else:
+            self.remoteNameEdit.setText("")
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
@@ -309,7 +343,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def read_mcu_file(self, idx):
         assert isinstance(idx, QModelIndex)
-        model = self.listView.model()
+        model = self.mcuFilesListView.model()
         assert isinstance(model, QStringListModel)
         file_name = model.data(idx, Qt.EditRole)
         if not file_name.endswith(".py"):
@@ -329,23 +363,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._connection.upload_transfer_files(progress_dlg.transfer)
 
     def transfer_to_mcu(self):
-        idx = self.treeView.currentIndex()
-        assert isinstance(idx, QModelIndex)
-        model = self.treeView.model()
+        indices = self.localFilesTreeView.selectedIndexes()
+        model = self.localFilesTreeView.model()
         assert isinstance(model, QFileSystemModel)
 
-        if model.isDir(idx):
-            return
+        def filter_indices(x):
+            return x.column() == 0 and not model.isDir(x)
 
-        local_path = model.filePath(idx)
-        remote_path = self.remoteNameEdit.text()
-        with open(local_path, "rb") as f:
-            content = f.read()
+        # Filter out all but first column (file name)
+        indices = [x for x in indices if filter_indices(x)]
 
         progress_dlg = FileTransferDialog(FileTransferDialog.UPLOAD)
         progress_dlg.finished.connect(self.list_mcu_files)
         progress_dlg.show()
-        self._connection.write_file(remote_path, content, progress_dlg.transfer)
+
+        # Handle single file transfer
+        if len(indices) == 1:
+            local_path = model.filePath(indices[0])
+            remote_path = self.remoteNameEdit.text()
+            with open(local_path, "rb") as f:
+                content = f.read()
+            self._connection.write_file(remote_path, content, progress_dlg.transfer)
+            return
+
+        # Batch file transfer
+        file_paths = [model.filePath(x) for x in indices]
+        progress_dlg.transfer.set_file_count(len(indices))
+        self._connection.write_files(file_paths, progress_dlg.transfer)
 
     def finished_transfer_to_pc(self, file_path, transfer):
         if not transfer.read_result.binary_data:
@@ -358,9 +402,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             QMessageBox.critical(self, "Save operation failed", "Couldn't save the file. Check path and permissions.")
 
     def transfer_to_pc(self):
-        idx = self.listView.currentIndex()
+        idx = self.mcuFilesListView.currentIndex()
         assert isinstance(idx, QModelIndex)
-        model = self.listView.model()
+        model = self.mcuFilesListView.model()
         assert isinstance(model, QStringListModel)
         remote_path = model.data(idx, Qt.EditRole)
         local_path = self.localPathEdit.text() + "/" + remote_path
@@ -380,9 +424,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def close_terminal(self):
         self._terminal_dialog = None
 
+    def open_external_editor(self, file_path):
+        ext_path = Settings().external_editor_path
+        ext_args = []
+        if Settings().external_editor_args:
+            def wildcard_replace(s):
+                s = s.replace("%f", file_path)
+                return s
+
+            ext_args = [wildcard_replace(x.strip()) for x in Settings().external_editor_args.split(";")]
+
+        subprocess.Popen([ext_path] + ext_args)
+
     def open_code_editor(self):
         if self._code_editor is not None:
             return
+
         self._code_editor = CodeEditDialog(self, self._connection)
         self._code_editor.mcu_file_saved.connect(self.list_mcu_files)
         self._code_editor.finished.connect(self.close_code_editor)
@@ -392,8 +449,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._code_editor = None
 
     def open_flash_dialog(self):
-        if self._code_editor is not None:
-            return
+        if self._connection is not None and self._connection.is_connected():
+            self.end_connection()
+
         self._flash_dialog = FlashDialog(self)
         self._flash_dialog.finished.connect(self.close_flash_dialog)
         self._flash_dialog.show()

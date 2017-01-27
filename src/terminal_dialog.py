@@ -97,7 +97,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
                         self.send_input()
                         return True
                     if event.key() == Qt.Key_Tab:
-                        self.inputTextBox.insertPlainText(" "*4)
+                        self.inputTextBox.insertPlainText(" "*Settings().terminal_tab_spaces)
                         return True
                     if event.key() == Qt.Key_Up and (event.modifiers() & Qt.ControlModifier):
                         if self._input_history_index > 0:

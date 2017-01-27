@@ -1,5 +1,5 @@
 import time
-from threading import Lock
+from threading import Lock, Thread
 
 
 class Connection:
@@ -23,6 +23,9 @@ class Connection:
 
     def read_junk(self):
         self.read_all()
+
+    def read_to_next_prompt(self):
+        raise NotImplementedError()
 
     def send_line(self, line_text, ending):
         raise NotImplementedError()
@@ -49,7 +52,13 @@ class Connection:
         self.send_end_paste()
 
     def remove_file(self, file_name):
+        # Prevent echo
+        self._auto_reader_lock.acquire()
+        self._auto_read_enabled = False
         self.send_line("import os; os.remove(\"{}\")".format(file_name))
+        self.read_to_next_prompt()
+        self._auto_read_enabled = True
+        self._auto_reader_lock.release()
 
     def send_start_paste(self):
         self.send_character("\5")
@@ -70,11 +79,43 @@ class Connection:
             self._auto_reader_lock.release()
             time.sleep(0.1 if x == "" else 0)
 
+    @staticmethod
+    def _get_remote_file_name(local_file_path):
+        return local_file_path.rsplit("/", 1)[1]
+
     def list_files(self):
         raise NotImplementedError()
 
-    def write_file(self, file_name, text, progress):
+    def _write_file_job(self, remote_name, content, transfer):
         raise NotImplementedError()
 
-    def read_file(self, file_name, progress):
+    def write_file(self, file_name, text, transfer):
+        job_thread = Thread(target=self._write_file_job,
+                            args=(file_name, text, transfer))
+        job_thread.setDaemon(True)
+        job_thread.start()
+
+    def _write_files_job(self, local_file_paths, transfer):
+        for local_path in local_file_paths:
+            remote_name = self._get_remote_file_name(local_path)
+            with open(local_path, "rb") as f:
+                content = f.read()
+                self._write_file_job(remote_name, content, transfer)
+                if transfer.cancel_sheduled:
+                    transfer.confirm_cancel()
+                if transfer.error or transfer.cancelled:
+                    break
+
+    def write_files(self, local_file_paths, transfer):
+        job_thread = Thread(target=self._write_files_job,
+                            args=(local_file_paths, transfer))
+        job_thread.setDaemon(True)
+        job_thread.start()
+
+    def _read_file_job(self, file_name, transfer):
         raise NotImplementedError()
+
+    def read_file(self, file_name, transfer):
+        job_thread = Thread(target=self._read_file_job, args=(file_name, transfer))
+        job_thread.setDaemon(True)
+        job_thread.start()
