@@ -9,6 +9,14 @@
 * Graphical interface for flashing firmware (via esptool)
 * Editing via built-in or external editor
 
+<p align="center">
+  <img src="https://s29.postimg.org/ybib0iwd3/main.png" width="400">
+</p>
+
+Terminal  | Code Editor  | Settings
+:--------:|:------------:|:---------:
+![](https://s29.postimg.org/lzk00rxw7/term.png)  |  ![](https://s29.postimg.org/nan5vi447/editor.png) | ![](https://s29.postimg.org/6pfjfud07/settings.png) 
+
 ### Setup:
 Clone this repository.
 The uPyLoader runs on Python3 and requires PyQt5 and PySerial above version 3. 
