@@ -7,6 +7,7 @@
 * Multiline input field with history
 * Remote script execution
 * Graphical interface for flashing firmware (via esptool)
+* Editing via built-in or external editor
 
 ### Setup:
 Clone this repository.
