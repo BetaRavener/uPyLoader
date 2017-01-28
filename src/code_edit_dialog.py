@@ -39,7 +39,7 @@ class CodeEditDialog(QDialog, Ui_CodeEditDialog):
 
     def closeEvent(self, event):
         Settings().update_geometry("editor", self.saveGeometry())
-        self.accept()
+        super(CodeEditDialog, self).closeEvent(event)
 
     def disconnected(self):
         self._connection = None

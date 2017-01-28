@@ -40,7 +40,13 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         self.sendKeyEdit.setKeySequence(Settings().send_key)
         self.tabSpacesSpinBox.setValue(Settings().terminal_tab_spaces)
 
-        self.accepted.connect(self.save_settings)
+        if Settings().mpy_cross_path:
+            self.mpyCrossPathLineEdit.setText(Settings().mpy_cross_path)
+        self.mpyPathBrowseButton.clicked.connect(self.browse_mpy_cross)
+
+    def accept(self):
+        self.save_settings()
+        super(SettingsDialog, self).accept()
 
     def browse_external_editor(self):
         path = QFileDialog().getOpenFileName(
@@ -51,12 +57,22 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         if path[0]:
             self.externalPathLineEdit.setText(path[0])
 
+    def browse_mpy_cross(self):
+        path = QFileDialog().getOpenFileName(
+            caption="Select mpy-cross compiler",
+            directory=QDir().homePath(),
+            options=QFileDialog.ReadOnly)
+
+        if path[0]:
+            self.mpyCrossPathLineEdit.setText(path[0])
+
     def save_settings(self):
         Settings().external_editor_path = self.externalPathLineEdit.text()
         Settings().external_editor_args = self.externalCommandLineEdit.text()
         Settings().new_line_key = self.newLineKeyEdit.keySequence()
         Settings().send_key = self.sendKeyEdit.keySequence()
         Settings().terminal_tab_spaces = self.tabSpacesSpinBox.value()
+        Settings().mpy_cross_path = self.mpyCrossPathLineEdit.text()
         Settings().save()
 
     @staticmethod

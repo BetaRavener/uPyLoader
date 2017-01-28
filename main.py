@@ -74,8 +74,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.removeButton.clicked.connect(self.remove_file)
         self.localPathEdit.setText(self._root_dir)
 
-        self.localFilesTreeView.clicked.connect(self.local_file_selection_changed)
+        local_selection_model = self.localFilesTreeView.selectionModel()
+        local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.doubleClicked.connect(self.open_local_file)
+
+        self.compileButton.clicked.connect(self.compile_files)
+        self.update_compile_button()
 
         self.transferToMcuButton.clicked.connect(self.transfer_to_mcu)
         self.transferToPcButton.clicked.connect(self.transfer_to_pc)
@@ -122,6 +126,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
             status = "Wrong Password"
         self.statusLabel.setText(status)
+
+    def update_compile_button(self):
+        self.compileButton.setEnabled(bool(Settings().mpy_cross_path) and
+                                      len(self.get_local_file_selection()) > 0)
 
     def disconnected(self):
         self.connectButton.setText("Connect")
@@ -316,23 +324,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.removeButton.setEnabled(False)
             self.transferToPcButton.setEnabled(False)
 
-    def local_file_selection_changed(self):
+    def get_local_file_selection(self):
+        """Returns absolute paths for selected local files"""
         indices = self.localFilesTreeView.selectedIndexes()
         model = self.localFilesTreeView.model()
         assert isinstance(model, QFileSystemModel)
 
-        # Filter out all but first column (file name)
-        indices = [x for x in indices if x.column() == 0]
+        def filter_indices(x):
+            return x.column() == 0 and not model.isDir(x)
 
-        if len(indices) == 1:
-            idx = indices[0]
-            if model.isDir(idx):
-                return
+        # Filter out all but first column (file name) and
+        # don't include directories
+        indices = [x for x in indices if filter_indices(x)]
 
-            local_path = model.filePath(idx)
-            self.remoteNameEdit.setText(local_path.rsplit("/", 1)[1])
+        # Return absolute paths
+        return [model.filePath(idx) for idx in indices]
+
+    def local_file_selection_changed(self):
+        self.update_compile_button()
+        local_file_paths = self.get_local_file_selection()
+        if len(local_file_paths) == 1:
+            self.remoteNameEdit.setText(local_file_paths[0].rsplit("/", 1)[1])
         else:
             self.remoteNameEdit.setText("")
+
+    def compile_files(self):
+        local_file_paths = self.get_local_file_selection()
+        for path in local_file_paths:
+            last_slash_idx = path.rfind("/")+1
+            directory = path[:last_slash_idx]
+            name = path[last_slash_idx:]
+            subprocess.Popen([Settings().mpy_cross_path, name], cwd=directory)
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
@@ -364,23 +386,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._connection.upload_transfer_files(progress_dlg.transfer)
 
     def transfer_to_mcu(self):
-        indices = self.localFilesTreeView.selectedIndexes()
-        model = self.localFilesTreeView.model()
-        assert isinstance(model, QFileSystemModel)
-
-        def filter_indices(x):
-            return x.column() == 0 and not model.isDir(x)
-
-        # Filter out all but first column (file name)
-        indices = [x for x in indices if filter_indices(x)]
+        local_file_paths = self.get_local_file_selection()
 
         progress_dlg = FileTransferDialog(FileTransferDialog.UPLOAD)
         progress_dlg.finished.connect(self.list_mcu_files)
         progress_dlg.show()
 
         # Handle single file transfer
-        if len(indices) == 1:
-            local_path = model.filePath(indices[0])
+        if len(local_file_paths) == 1:
+            local_path = local_file_paths[0]
             remote_path = self.remoteNameEdit.text()
             with open(local_path, "rb") as f:
                 content = f.read()
@@ -388,9 +402,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         # Batch file transfer
-        file_paths = [model.filePath(x) for x in indices]
-        progress_dlg.transfer.set_file_count(len(indices))
-        self._connection.write_files(file_paths, progress_dlg.transfer)
+        progress_dlg.transfer.set_file_count(len(local_file_paths))
+        self._connection.write_files(local_file_paths, progress_dlg.transfer)
 
     def finished_transfer_to_pc(self, file_path, transfer):
         if not transfer.read_result.binary_data:
@@ -469,6 +482,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def close_settings_dialog(self):
         self._settings_dialog = None
+        # Update compile button as mpy-cross path might have been set
+        self.update_compile_button()
 
 # Main Function
 if __name__ == '__main__':

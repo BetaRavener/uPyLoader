@@ -269,7 +269,7 @@
        <enum>Qt::Horizontal</enum>
       </property>
       <widget class="QWidget" name="verticalLayoutWidget_2">
-       <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0">
+       <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0,0">
         <property name="rightMargin">
          <number>0</number>
         </property>
@@ -318,6 +318,13 @@
           </property>
           <property name="selectionMode">
            <enum>QAbstractItemView::ExtendedSelection</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="compileButton">
+          <property name="text">
+           <string>Compile</string>
           </property>
          </widget>
         </item>

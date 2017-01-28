@@ -87,8 +87,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         if self.terminal_listener:
             self.terminal.add_event.disconnect(self.terminal_listener)
             self.terminal_listener = None
-        self.reject()
-        event.accept()
+        super(TerminalDialog, self).closeEvent(event)
 
     def emit_update_content(self):
         """Update content indirection so that this can be called in multi-threaded environment"""

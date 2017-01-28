@@ -29,6 +29,7 @@ class Settings(metaclass=Singleton):
         self.new_line_key = QKeySequence(Qt.SHIFT + Qt.Key_Return, Qt.SHIFT + Qt.Key_Enter)
         self.send_key = QKeySequence(Qt.Key_Return, Qt.Key_Enter)
         self.terminal_tab_spaces = 4
+        self.mpy_cross_path = None
 
         if not self.load():
             if not self.load_old():
