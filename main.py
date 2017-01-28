@@ -13,7 +13,7 @@ from src.file_transfer import FileTransfer
 from src.file_transfer_dialog import FileTransferDialog
 from src.flash_dialog import FlashDialog
 from src.ip_helper import IpHelper
-from src.password_exception import PasswordException, NewPasswordException
+from src.exceptions import PasswordException, NewPasswordException, OperationError
 from src.serial_connection import SerialConnection
 from src.setting import Settings
 from src.settings_dialog import SettingsDialog
@@ -188,7 +188,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.localFilesTreeView.setRootIndex(model.index(self._root_dir))
 
     def list_mcu_files(self):
-        file_list = self._connection.list_files()
+        file_list=[]
+        try:
+            file_list = self._connection.list_files()
+        except OperationError:
+            QMessageBox().critical(self, "Operation failed", "Could not list files.", QMessageBox.Ok)
+            return
+
         self._mcu_files_model = QStringListModel()
 
         for file in file_list:
@@ -213,7 +219,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         model = self.mcuFilesListView.model()
         assert isinstance(model, QStringListModel)
         file_name = model.data(idx, Qt.EditRole)
-        self._connection.remove_file(file_name)
+        try:
+            self._connection.remove_file(file_name)
+        except OperationError:
+            QMessageBox().critical(self, "Operation failed", "Could not remove the file.", QMessageBox.Ok)
+            return
         self.list_mcu_files()
 
     def ask_for_password(self, title, label="Password"):

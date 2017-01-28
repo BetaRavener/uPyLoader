@@ -8,7 +8,7 @@ import math
 from src import websocket_helper
 from src.connection import Connection
 from src.file_transfer import FileTransfer
-from src.password_exception import PasswordException, NewPasswordException
+from src.exceptions import PasswordException, NewPasswordException, OperationError
 from src.websocket import WebSocket
 
 
@@ -124,11 +124,8 @@ class WifiConnection(Connection):
     def read_junk(self):
         self.ws.read_all(0)
 
-    def read_to_next_prompt(self):
-        ret = b""
-        while len(ret) < 4 or ret[-4:] != b">>> ":
-            ret += self.ws.read(1)
-        return ret.decode("utf-8", errors="replace")
+    def read_one_byte(self):
+        return self.ws.read(1)
 
     def send_character(self, char):
         assert isinstance(char, str)
@@ -139,17 +136,24 @@ class WifiConnection(Connection):
         assert isinstance(ending, str)
         self.ws.write(line_text + ending)
 
+    #TODO: Could be merged with serial connection?
     def list_files(self):
+        success = True
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         self.read_junk()
         self.ws.write("import os;os.listdir()\r\n")
-        ret = self.read_to_next_prompt()
+        ret = ""
+        try:
+            ret = self.read_to_next_prompt()
+        except TimeoutError:
+            success = False
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
-        if not ret:
-            return []  # TODO: Error
-        return re.findall("'([^']+)'", ret)
+        if success and ret:
+            return re.findall("'([^']+)'", ret)
+        else:
+            raise OperationError()
 
     @staticmethod
     def read_resp(ws):

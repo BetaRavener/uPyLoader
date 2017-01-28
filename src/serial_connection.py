@@ -5,6 +5,7 @@ import serial
 import time
 
 from src.connection import Connection
+from src.exceptions import OperationError
 from src.file_transfer import FileTransfer, ReadResult
 from src.setting import Settings
 
@@ -102,23 +103,29 @@ class SerialConnection(Connection):
     def read_junk(self):
         self.read_all()
 
-    def read_to_next_prompt(self):
-        ret = b""
-        while len(ret) < 4 or ret[-4:] != b">>> ":
-            ret += self._serial.read(1)
-        return ret.decode("utf-8", errors="replace")
+    def read_one_byte(self):
+        return self._serial.read(1)
 
     def list_files(self):
+        success = True
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         self.send_kill()
         self.read_junk()
         self.send_line("import os; os.listdir()")
         self._serial.flush()
-        ret = self.read_to_next_prompt()
+        ret = ""
+        try:
+            ret = self.read_to_next_prompt()
+        except TimeoutError:
+            success = False
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
-        return re.findall("'([^']+)'", ret)
+
+        if success and ret:
+            return re.findall("'([^']+)'", ret)
+        else:
+            raise OperationError()
 
     @staticmethod
     def escape_characters(text):

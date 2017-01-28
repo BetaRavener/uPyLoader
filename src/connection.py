@@ -1,6 +1,8 @@
 import time
 from threading import Lock, Thread
 
+from src.exceptions import OperationError
+
 
 class Connection:
     def __init__(self, terminal=None):
@@ -24,8 +26,17 @@ class Connection:
     def read_junk(self):
         self.read_all()
 
-    def read_to_next_prompt(self):
+    def read_one_byte(self):
         raise NotImplementedError()
+
+    def read_to_next_prompt(self, timeout=5.0):
+        ret = b""
+        t_start = time.time()
+        while len(ret) < 4 or ret[-4:] != b">>> ":
+            if (time.time() - t_start) >= timeout:
+                raise TimeoutError()
+            ret += self.read_one_byte()
+        return ret.decode("utf-8", errors="replace")
 
     def send_line(self, line_text, ending):
         raise NotImplementedError()
@@ -52,13 +63,19 @@ class Connection:
         self.send_end_paste()
 
     def remove_file(self, file_name):
+        success = True
         # Prevent echo
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         self.send_line("import os; os.remove(\"{}\")".format(file_name))
-        self.read_to_next_prompt()
+        try:
+            self.read_to_next_prompt()
+        except TimeoutError:
+            success = False
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
+        if not success:
+            raise OperationError()
 
     def send_start_paste(self):
         self.send_character("\5")
