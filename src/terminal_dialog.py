@@ -157,9 +157,14 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         elif target == self.outputTextEdit:
             if isinstance(event, QKeyEvent):
                 if event.type() == QEvent.KeyPress:
-                    t = event.text()
-                    if t:
-                        self.connection.send_character(t)
+                    if event.key() == Qt.Key_Up:
+                        self.connection.send_bytes(b"\x1b[A")
+                    if event.key() == Qt.Key_Down:
+                        self.connection.send_bytes(b"\x1b[B")
+                    else:
+                        t = event.text()
+                        if t:
+                            self.connection.send_character(t)
                     return True
         elif target == self.outputTextEdit.verticalScrollBar():
             if isinstance(event, QHideEvent):

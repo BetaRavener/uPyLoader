@@ -44,6 +44,9 @@ class Connection:
     def send_character(self, char):
         raise NotImplementedError()
 
+    def send_bytes(self, binary):
+        raise NotImplementedError()
+
     def send_block(self, text):
         lines = text.split("\n")
         if len(lines) == 1:

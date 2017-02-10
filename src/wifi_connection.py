@@ -59,12 +59,12 @@ class WifiConnection(Connection):
         self.s = None
 
     def set_password(self):
-        password = "passw"
-        self.ws.write(password.encode("utf-8") + b"\r")
+        password = "passw".encode("utf-8") + b"\r"
+        self.ws.write(password)
         response = self.ws.read_all().decode("utf-8")
         if response.find("Confirm password:") < 0:
             return False
-        self.ws.write(password.encode("utf-8") + b"\r")
+        self.ws.write(password)
         try:
             response = self.ws.read_all().decode("utf-8")
             return response.find("Password successfully set") >= 0
@@ -116,6 +116,9 @@ class WifiConnection(Connection):
         if x and self._terminal is not None:
             if x == b'\x08\x1b[K':
                 x = b'\x08'
+            if x[:3] == b'\x1b[':  # Control sequence
+                # TODO: regex firt match 14D on x[3:]
+                pass
 
             self._terminal.add(x.decode("utf-8", errors="replace"))
 
@@ -130,6 +133,9 @@ class WifiConnection(Connection):
     def send_character(self, char):
         assert isinstance(char, str)
         self.ws.write(char)
+
+    def send_bytes(self, binary):
+        self.ws.write(binary)
 
     def send_line(self, line_text, ending="\r\n"):
         assert isinstance(line_text, str)
@@ -176,12 +182,12 @@ class WifiConnection(Connection):
         self._auto_read_enabled = False
         self.read_junk()
 
-        self.ws.write(rec)
+        self.ws.write(rec, True)
         assert self.read_resp(self.ws) == 0
 
         while True:
             # Confirm message
-            self.ws.write(b"\1")
+            self.ws.write(b"\1", True)
             (sz,) = struct.unpack("<H", self.ws.read(2))
             if sz == 0:
                 break
@@ -221,8 +227,8 @@ class WifiConnection(Connection):
         self._auto_read_enabled = False
         self.read_junk()
 
-        self.ws.write(rec[:10])
-        self.ws.write(rec[10:])
+        self.ws.write(rec[:10], file_transfer=True)
+        self.ws.write(rec[10:], file_transfer=True)
         try:
             if self.read_resp(self.ws) != 0:
                 mark_error_and_release()
@@ -236,7 +242,7 @@ class WifiConnection(Connection):
             buf = text[cnt:cnt + 256]
             if not buf:
                 break
-            self.ws.write(buf)
+            self.ws.write(buf, file_transfer=True)
             cnt += len(buf)
             transfer.progress = cnt / sz
 

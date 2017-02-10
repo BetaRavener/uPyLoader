@@ -65,6 +65,10 @@ class SerialConnection(Connection):
         self._serial.write(char.encode('utf-8'))
         time.sleep(Settings().send_sleep)
 
+    def send_bytes(self, binary):
+        self._serial.write(binary)
+        time.sleep(Settings().send_sleep)
+
     def read_line(self):
         x = self._serial.readline()
 

@@ -13,11 +13,10 @@ class WebSocket:
         self.s = s
         self.buf = b""
 
-    def write(self, data):
-        ft = 0x82
+    def write(self, data, file_transfer=False):
+        ft = 0x82 if file_transfer else 0x81
 
         if type(data) is str:
-            ft = 0x81
             data = data.encode("utf-8")
 
         l = len(data)
