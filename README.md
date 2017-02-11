@@ -90,6 +90,7 @@ Currently, the UART transfer scripts can be only disabled by changing `"use_tran
 ## Changelog:
 ### 2017-02-11
 * Refecting many of the past changes in this readme.
+
 ### 2016-08-17:
 * The main GUI is now two-pane layout supporting file transfer between local host (PC) and remote device (MCU)
 * Code editor became separate window which can be used to edit scripts in-place. Previous file-save functionality is preserved for fast workflow.
