@@ -74,6 +74,8 @@ Many boards have limited resources and compiling large scripts / modules results
 
 uPyLoader supports generating these bytecode files. First, path to `mpy-cross` has to be set in `Options->Settings`. After doing so, select script `.py` files in left, local column and click Compile, which should be now enabled. The bytecode files will be generated in the same folder as the original script files.
 
+Building `mpy-cross` tool on Linux is straightforward. Windows users can use `MinGW` to build native executable which can be run by uPyLoader.
+
 #### Flashing firmware (only for ESP8266):
 Open dialog by selecting `File->Flash firmware`. Because of mismatch between python version (uPyLoader == Python3, esptool == Python2), it is required that you select Python2 executable of environment which contains esptool (esptool can be added to environment with `pip install esptool`). In case that this executable can be called directly (e.g. on linux), it is sufficient to type `python` into `Python2 path` field. Otherwise, full path to executable must be specified. You can use `Pick` button next to the input field for browsing through directories. An example of full path on Windows is `C:/Python27/python.exe`.
 
