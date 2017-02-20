@@ -95,3 +95,6 @@ Currently, the UART transfer scripts can be only disabled by changing `"use_tran
 * The main GUI is now two-pane layout supporting file transfer between local host (PC) and remote device (MCU)
 * Code editor became separate window which can be used to edit scripts in-place. Previous file-save functionality is preserved for fast workflow.
 * UART communication protocol was changed to support transfer of binary files. The transfer scripts in the MCU needs to be updated. Use `File->Init Transfer Files` to do so.
+
+## Keywords
+mcu, ESP8266, micropython, IDE, uPyLoader, file transfer
