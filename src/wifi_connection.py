@@ -50,6 +50,7 @@ class WifiConnection(Connection):
         except (ConnectionResetError, ConnectionAbortedError):
             return False
 
+        self.s.setblocking(0)
         self.ws = WebSocket(self.s)
         return True
 

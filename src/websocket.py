@@ -27,12 +27,15 @@ class WebSocket:
         self.s.send(hdr)
         self.s.send(data)
 
-    def recvexactly(self, sz):
+    def recvexactly(self, sz, timeout=5):
         res = b""
         while sz:
+            read_sockets, _, _ = select.select([self.s], [], [], timeout)
+            if not read_sockets:
+                raise TimeoutError()
             data = self.s.recv(sz)
             if not data:
-                break
+                raise ConnectionAbortedError()
             res += data
             sz -= len(data)
         return res
