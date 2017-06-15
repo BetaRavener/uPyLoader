@@ -1,6 +1,8 @@
 # uPyLoader
 ## A simple tool for communicating with MicroPython board.
-## The tool is in Alpha version! It may hang or crash on certain user actions. Please, restart the application in such case.
+## If you are missing a feature or find a bug, please create a new issue (Issues tab). 
+### The tool is in Alpha version! It may hang or crash on certain user actions. Please, restart the application in such case.
+
 ### Features:
 * File upload and download over WiFi & UART
 * Terminal over WiFI & UART
