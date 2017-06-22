@@ -44,6 +44,10 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
             self.mpyCrossPathLineEdit.setText(Settings().mpy_cross_path)
         self.mpyPathBrowseButton.clicked.connect(self.browse_mpy_cross)
 
+        if Settings().preferred_port:
+            self.preferredPortLineEdit.setText(Settings().preferred_port)
+
+
     def accept(self):
         self.save_settings()
         super(SettingsDialog, self).accept()
@@ -73,6 +77,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         Settings().send_key = self.sendKeyEdit.keySequence()
         Settings().terminal_tab_spaces = self.tabSpacesSpinBox.value()
         Settings().mpy_cross_path = self.mpyCrossPathLineEdit.text()
+        Settings().preferred_port = self.preferredPortLineEdit.text()
         Settings().save()
 
     @staticmethod
