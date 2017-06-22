@@ -147,6 +147,7 @@ class Ui_MainWindow(object):
         self.localFilesTreeView.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.localFilesTreeView.setBaseSize(QtCore.QSize(0, 0))
         self.localFilesTreeView.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.localFilesTreeView.setSortingEnabled(True)
         self.localFilesTreeView.setObjectName("localFilesTreeView")
         self.verticalLayout_2.addWidget(self.localFilesTreeView)
         self.compileButton = QtWidgets.QPushButton(self.verticalLayoutWidget_2)

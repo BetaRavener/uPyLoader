@@ -1,9 +1,10 @@
 import subprocess
 import sys
+import time
 
 from PyQt5.QtCore import QStringListModel, QModelIndex, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
-    QFileDialog, QDialog, QInputDialog, QLineEdit, QMessageBox
+    QFileDialog, QDialog, QInputDialog, QLineEdit, QMessageBox, QHeaderView
 
 from gui.mainwindow import Ui_MainWindow
 from src.baud_options import BaudOptions
@@ -77,6 +78,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         local_selection_model = self.localFilesTreeView.selectionModel()
         local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.doubleClicked.connect(self.open_local_file)
+
+        # Set the "Name" column to always fit the content
+        self.localFilesTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
 
         self.compileButton.clicked.connect(self.compile_files)
         self.update_compile_button()
@@ -365,6 +369,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             directory = path[:last_slash_idx]
             name = path[last_slash_idx:]
             subprocess.Popen([Settings().mpy_cross_path, name], cwd=directory)
+        time.sleep(1)           # Delay needed to allow compile to finish
+        self.update_file_tree() # Refresh to show updated timestamp on mpy file
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
