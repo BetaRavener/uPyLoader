@@ -73,6 +73,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         Settings().send_key = self.sendKeyEdit.keySequence()
         Settings().terminal_tab_spaces = self.tabSpacesSpinBox.value()
         Settings().mpy_cross_path = self.mpyCrossPathLineEdit.text()
+        Settings().preferred_port = self.preferredPathLineEdit.text()
         Settings().save()
 
     @staticmethod

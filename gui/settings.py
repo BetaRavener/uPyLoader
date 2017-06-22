@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file './gui/qt\settings.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.8.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -98,6 +98,25 @@ class Ui_SettingsDialog(object):
         self.formLayout.setLayout(1, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_3)
         self.verticalLayout_4.addLayout(self.formLayout)
         self.verticalLayout.addWidget(self.groupBox)
+#
+        self.portFormLayout = QtWidgets.QFormLayout()
+        self.portFormLayout.setObjectName("portFormLayout")
+        self.portBox = QtWidgets.QGroupBox(SettingsDialog)
+        self.portBox.setObjectName("portBox")
+        self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.portBox)
+        self.verticalLayout_5.setObjectName("verticalLayout_5")
+        self.label_7 = QtWidgets.QLabel(self.portBox)
+        self.label_7.setObjectName("label_7")
+        self.portFormLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_7)
+        self.preferredPortLineEdit = QtWidgets.QLineEdit(self.portBox)
+        self.preferredPortLineEdit.setObjectName("preferredPortLineEdit")
+        self.portFormLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.preferredPortLineEdit)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.portFormLayout.setLayout(0, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_2)
+        self.verticalLayout_5.addLayout(self.portFormLayout)
+        self.verticalLayout.addWidget(self.portBox)
+#
         spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem1)
         self.buttonBox = QtWidgets.QDialogButtonBox(SettingsDialog)
@@ -115,8 +134,10 @@ class Ui_SettingsDialog(object):
         _translate = QtCore.QCoreApplication.translate
         SettingsDialog.setWindowTitle(_translate("SettingsDialog", "Settings"))
         self.editorGroupBox.setTitle(_translate("SettingsDialog", "Editor"))
+        self.portBox.setTitle(_translate("SettingsDialog", "Preferred Port"))
         self.label_4.setText(_translate("SettingsDialog", "Path to external editor"))
         self.label_5.setText(_translate("SettingsDialog", "External editor arguments"))
+        self.label_6.setText(_translate("SettingsDialog", "Port Name"))
         self.externalPathBrowseButton.setText(_translate("SettingsDialog", "..."))
         self.terminalGroupBox.setTitle(_translate("SettingsDialog", "Terminal"))
         self.label.setText(_translate("SettingsDialog", "New line key"))

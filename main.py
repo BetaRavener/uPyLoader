@@ -110,7 +110,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self._connection_scanner.port_list:
             for port in self._connection_scanner.port_list:
                 self.connectionComboBox.addItem(port)
-            self.connectionComboBox.setCurrentIndex(0)
+            if self.connectionComboBox.findText("COM12") >= 0:
+               self.connectionComboBox.setCurrentIndex(self.connectionComboBox.findText("COM12"))
+            else:
+               self.connectionComboBox.setCurrentIndex(0)
             self.connectButton.setEnabled(True)
         else:
             self.connectButton.setEnabled(False)
