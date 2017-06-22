@@ -189,6 +189,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         model = QFileSystemModel()
         model.setRootPath(self._root_dir)
         self.localFilesTreeView.setModel(model)
+        local_selection_model = self.localFilesTreeView.selectionModel()
+        local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.setRootIndex(model.index(self._root_dir))
 
     def list_mcu_files(self):
