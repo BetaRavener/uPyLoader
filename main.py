@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import time
+import os
 
 from PyQt5.QtCore import QStringListModel, QModelIndex, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
@@ -378,7 +379,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             name = path[last_slash_idx:]
             subprocess.Popen([Settings().mpy_cross_path, name], cwd=directory)
         time.sleep(1)           # Delay needed to allow compile to finish
-        self.update_file_tree() # Refresh to show updated timestamp on mpy file
+        #self.update_file_tree() # Refresh to show updated timestamp on mpy file
+        if self.autoTransferCheckBox.isChecked():
+            if len(local_file_paths) == 1:
+                mpy_name = os.path.splitext(name)[0]+".mpy"
+                self.remoteNameEdit.setText(mpy_name)
+                ###self.localFilesTreeView.setCurrentIndex(self.localFilesTreeView.findText())
+                self.localFilesTreeView.keyboardSearch(mpy_name)
+                if self.transferToMcuButton.isEnabled() == True:
+                    self.transfer_to_mcu
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
