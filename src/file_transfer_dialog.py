@@ -31,9 +31,14 @@ class FileTransferDialog(QDialog, Ui_FileTransferDialog):
         self._update_signal.connect(self._update_progress)
         self.cancelButton.clicked.connect(self._transfer.cancel)
 
+    def enable_cancel(self):
+        self.cancelButton.setEnabled(True)
+
     def _update_progress(self):
         if self._transfer.error:
             QMessageBox().critical(self, "Error", "File transfer failed.", QMessageBox.Ok)
+            self.reject()
+        elif self._transfer.cancelled:
             self.reject()
         elif self._transfer.finished:
             sleep(0.5)
