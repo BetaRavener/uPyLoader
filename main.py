@@ -423,6 +423,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         # Batch file transfer
+        progress_dlg.enable_cancel()
         progress_dlg.transfer.set_file_count(len(local_file_paths))
         self._connection.write_files(local_file_paths, progress_dlg.transfer)
 

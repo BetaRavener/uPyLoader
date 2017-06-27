@@ -4,7 +4,6 @@ class ReadResult:
 
 
 class FileTransfer:
-    # TODO: Implement cancelled in wifi and serial connection
     def __init__(self, signal):
         self._progress = 0
         self._file = 0
