@@ -114,9 +114,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             prefPort = prefPort.upper()
             prefPort = prefPort.join(prefPort.split())
             if self.connectionComboBox.findText(prefPort) >= 0:
-               self.connectionComboBox.setCurrentIndex(self.connectionComboBox.findText(prefPort))
+                self.connectionComboBox.setCurrentIndex(self.connectionComboBox.findText(prefPort))
             else:
-               self.connectionComboBox.setCurrentIndex(0)
+                self.connectionComboBox.setCurrentIndex(0)
             self.connectButton.setEnabled(True)
         else:
             self.connectButton.setEnabled(False)
@@ -194,7 +194,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.localFilesTreeView.setRootIndex(model.index(self._root_dir))
 
     def list_mcu_files(self):
-        file_list=[]
+        file_list = []
         try:
             file_list = self._connection.list_files()
         except OperationError:
@@ -274,6 +274,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if self._connection is not None and self._connection.is_connected():
             self.connected()
+            if isinstance(self._connection, SerialConnection):
+                if Settings().use_transfer_scripts and not self._connection.check_transfer_scripts_version():
+                    QMessageBox.warning(self,
+                                        "Transfer scripts problem",
+                                        "Transfer scripts for UART are either"
+                                        " missing or have wrong version.\nPlease use 'File->Init transfer files' to"
+                                        " fix this issue.")
         else:
             self._connection = None
             self.set_status("Error")
@@ -367,7 +374,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def compile_files(self):
         local_file_paths = self.get_local_file_selection()
         for path in local_file_paths:
-            last_slash_idx = path.rfind("/")+1
+            last_slash_idx = path.rfind("/") + 1
             directory = path[:last_slash_idx]
             name = path[last_slash_idx:]
             with subprocess.Popen([Settings().mpy_cross_path, name], cwd=directory, stderr=subprocess.PIPE) as proc:
@@ -375,7 +382,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 out = proc.stderr.read()
                 if out:
                     QMessageBox.warning(self, "Compilation error", out.decode("utf-8"))
-
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
@@ -506,6 +512,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._settings_dialog = None
         # Update compile button as mpy-cross path might have been set
         self.update_compile_button()
+
 
 # Main Function
 if __name__ == '__main__':
