@@ -32,10 +32,6 @@ class SerialConnection(Connection):
                 while not x.endswith(">>>"):
                     x += self._serial.read().decode('utf-8', errors="ignore")
             self.send_kill()
-            if Settings().use_transfer_scripts:
-                scripts_ok = self.check_transfer_scripts_version()
-                if not scripts_ok:
-                    pass
         except (OSError, serial.SerialException) as e:
             self._serial = None
             return
@@ -148,28 +144,30 @@ class SerialConnection(Connection):
         return ret
 
     def check_transfer_scripts_version(self):
+        self._auto_reader_lock.acquire()
+        self._auto_read_enabled = False
         self.send_kill()
         self.read_junk()
         self.send_block("with open(\"__upload.py\") as f:\n  f.readline()\n")
         self._serial.flush()
+        success = True
         try:
             resp = self.read_to_next_prompt()
             idx = resp.find("#V")
             if idx < 0 or resp[idx:idx+3] != "#V1":
-                return False
-        except TimeoutError:
-            return False
-        self.read_junk()
-        self.send_block("with open(\"__download.py\") as f:\n  f.readline()\n")
-        self._serial.flush()
-        try:
+                raise ValueError
+            self.read_junk()
+            self.send_block("with open(\"__download.py\") as f:\n  f.readline()\n")
+            self._serial.flush()
             resp = self.read_to_next_prompt()
             idx = resp.find("#V")
             if idx < 0 or resp[idx:idx+3] != "#V1":
-                return False
-        except TimeoutError:
-            return False
-        return True
+                raise ValueError
+        except (TimeoutError, ValueError):
+            success = False
+        self._auto_read_enabled = True
+        self._auto_reader_lock.release()
+        return success
 
     def send_upload_file(self, file_name):
         with open("mcu/upload.py") as f:
