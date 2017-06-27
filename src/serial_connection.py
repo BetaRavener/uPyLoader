@@ -32,6 +32,10 @@ class SerialConnection(Connection):
                 while not x.endswith(">>>"):
                     x += self._serial.read().decode('utf-8', errors="ignore")
             self.send_kill()
+            if Settings().use_transfer_scripts:
+                scripts_ok = self.check_transfer_scripts_version()
+                if not scripts_ok:
+                    pass
         except (OSError, serial.SerialException) as e:
             self._serial = None
             return
@@ -143,6 +147,30 @@ class SerialConnection(Connection):
                 ret += c
         return ret
 
+    def check_transfer_scripts_version(self):
+        self.send_kill()
+        self.read_junk()
+        self.send_block("with open(\"__upload.py\") as f:\n  f.readline()\n")
+        self._serial.flush()
+        try:
+            resp = self.read_to_next_prompt()
+            idx = resp.find("#V")
+            if idx < 0 or resp[idx:idx+3] != "#V1":
+                return False
+        except TimeoutError:
+            return False
+        self.read_junk()
+        self.send_block("with open(\"__download.py\") as f:\n  f.readline()\n")
+        self._serial.flush()
+        try:
+            resp = self.read_to_next_prompt()
+            idx = resp.find("#V")
+            if idx < 0 or resp[idx:idx+3] != "#V1":
+                return False
+        except TimeoutError:
+            return False
+        return True
+
     def send_upload_file(self, file_name):
         with open("mcu/upload.py") as f:
             data = f.read()
@@ -208,7 +236,8 @@ class SerialConnection(Connection):
             # Shorten chunk to prevent brake at special sequence
             if chunk[len(chunk)-1] == 0x0:
                 chunk = chunk[0:-1]
-            self._serial.write(b"".join([b"#", bytes([len(chunk)]), chunk]))
+            # Set the most significant bit of length to also prevent REPL intercepting the byte
+            self._serial.write(b"".join([b"#", bytes([len(chunk) | 0x80]), chunk]))
             ack = self.read_timeout(2)
             if not ack or ack != b"#1":
                 transfer.mark_error()

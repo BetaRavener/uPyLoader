@@ -376,9 +376,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             last_slash_idx = path.rfind("/")+1
             directory = path[:last_slash_idx]
             name = path[last_slash_idx:]
-            subprocess.Popen([Settings().mpy_cross_path, name], cwd=directory)
-        time.sleep(1)           # Delay needed to allow compile to finish
-        self.update_file_tree() # Refresh to show updated timestamp on mpy file
+            with subprocess.Popen([Settings().mpy_cross_path, name], cwd=directory, stderr=subprocess.PIPE) as proc:
+                proc.wait()  # Wait for process to finish
+                out = proc.stderr.read()
+                if out:
+                    QMessageBox.warning(self, "Compilation error", out.decode("utf-8"))
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
