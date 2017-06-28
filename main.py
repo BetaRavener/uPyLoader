@@ -3,7 +3,7 @@ import sys
 import time
 import os
 
-from PyQt5.QtCore import QStringListModel, QModelIndex, Qt
+from PyQt5.QtCore import QStringListModel, QModelIndex, Qt, QItemSelectionModel
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
     QFileDialog, QDialog, QInputDialog, QLineEdit, QMessageBox, QHeaderView
 
@@ -393,11 +393,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.autoTransferCheckBox.isChecked():
             if len(local_file_paths) == 1:
                 mpy_name = os.path.splitext(name)[0]+".mpy"
+                mpy_path = Settings().root_dir+'/'+mpy_name
                 self.remoteNameEdit.setText(mpy_name)
-                ###self.localFilesTreeView.setCurrentIndex(self.localFilesTreeView.findText())
-                self.localFilesTreeView.keyboardSearch(mpy_name)
+                idx = self.localFilesTreeView.model().index(mpy_path)
+                self.localFilesTreeView.selectionModel().select(idx,QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
                 if self.transferToMcuButton.isEnabled() == True:
-                    self.transfer_to_mcu
+                    self.transfer_to_mcu()
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
