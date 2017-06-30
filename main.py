@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import time
+import os
 
 from PyQt5.QtCore import QStringListModel, QModelIndex, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
@@ -380,7 +381,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def compile_files(self):
         local_file_paths = self.get_local_file_selection()
         for path in local_file_paths:
-            last_slash_idx = path.rfind("/") + 1
+            mpy_path = os.path.splitext(path)[0]+".mpy"
+            try:
+               os.unlink(mpy_path)
+            except:
+               pass
+            self.localFilesTreeView.repaint()
+            time.sleep(.500)
+            QApplication.processEvents()   # not working to refresh before the compile...
+            last_slash_idx = path.rfind("/")+1
             directory = path[:last_slash_idx]
             name = path[last_slash_idx:]
             with subprocess.Popen([Settings().mpy_cross_path, name], cwd=directory, stderr=subprocess.PIPE) as proc:
