@@ -3,7 +3,7 @@ import sys
 import time
 import os
 
-from PyQt5.QtCore import QStringListModel, QModelIndex, Qt, QItemSelectionModel
+from PyQt5.QtCore import QStringListModel, QModelIndex, Qt, QItemSelectionModel, QEventLoop
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
     QFileDialog, QDialog, QInputDialog, QLineEdit, QMessageBox, QHeaderView
 
@@ -380,21 +380,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def compile_files(self):
         local_file_paths = self.get_local_file_selection()
+        compiled_file_paths = []
         for path in local_file_paths:
             split = os.path.splitext(path)
             if split[1] == ".mpy":
-               title = "COMPILE WARNING!! " + os.path.basename(path)
-               QMessageBox.warning(self, title, "Can't compile .mpy files, already bytecode")
-               continue
+                title = "COMPILE WARNING!! " + os.path.basename(path)
+                QMessageBox.warning(self, title, "Can't compile .mpy files, already bytecode")
+                continue
             mpy_path = split[0]+".mpy"
 
             try:
-               os.unlink(mpy_path)
-               self.localFilesTreeView.repaint()
-               QApplication.processEvents()
-               self.localFilesTreeView.repaint()
-            except:
-               pass
+                os.remove(mpy_path)
+                # Force view to update itself
+                self.localFilesTreeView.repaint()
+                #QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
+            except OSError:
+                pass
 
             with subprocess.Popen([Settings().mpy_cross_path, os.path.basename(path)], cwd=os.path.dirname(path), stderr=subprocess.PIPE) as proc:
                 proc.wait()  # Wait for process to finish
@@ -402,16 +403,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if out:
                     QMessageBox.warning(self, "Compilation error", out.decode("utf-8"))
 
-            if self.autoTransferCheckBox.isChecked():
-                if len(local_file_paths) == 1:
-                    mpy_name = os.path.splitext(os.path.basename(path))[0]+".mpy"
-                    mpy_path = os.path.dirname(path)+'/'+mpy_name
-                    self.remoteNameEdit.setText(mpy_name)
-                    idx = self.localFilesTreeView.model().index(mpy_path)
-                    self.localFilesTreeView.selectionModel().select(idx,QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows)
-                    self.localFilesTreeView.repaint()
-                    if self.transferToMcuButton.isEnabled() == True:
-                        self.transfer_to_mcu()
+            compiled_file_paths += [mpy_path]
+
+        selection_model = self.localFilesTreeView.selectionModel()
+        if compiled_file_paths:
+            assert isinstance(selection_model, QItemSelectionModel)
+            selection_model.clearSelection()
+
+        for mpy_path in compiled_file_paths:
+            idx = self.localFilesTreeView.model().index(mpy_path)
+            selection_model.select(idx, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+        self.localFilesTreeView.repaint()
+        #QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
+
+        if self.autoTransferCheckBox.isChecked() and self._connection and self._connection.is_connected():
+            self.transfer_to_mcu()
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
