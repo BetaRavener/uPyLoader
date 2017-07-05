@@ -3,18 +3,20 @@ import subprocess
 import sys
 
 from PyQt5.QtCore import QStringListModel, QModelIndex, Qt
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
-    QFileDialog, QDialog, QInputDialog, QLineEdit, QMessageBox
+    QFileDialog, QInputDialog, QLineEdit, QMessageBox
 
 from gui.mainwindow import Ui_MainWindow
 from src.baud_options import BaudOptions
 from src.code_edit_dialog import CodeEditDialog
 from src.connection_scanner import ConnectionScanner
+from src.exceptions import PasswordException, NewPasswordException, OperationError
 from src.file_transfer import FileTransfer
 from src.file_transfer_dialog import FileTransferDialog
 from src.flash_dialog import FlashDialog
 from src.ip_helper import IpHelper
-from src.exceptions import PasswordException, NewPasswordException, OperationError
+from src.pyinstaller_helper import PyInstallerHelper
 from src.serial_connection import SerialConnection
 from src.setting import Settings
 from src.settings_dialog import SettingsDialog
@@ -519,12 +521,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Update compile button as mpy-cross path might have been set
         self.update_compile_button()
 
-
 # Main Function
 if __name__ == '__main__':
     # Create main app
     myApp = QApplication(sys.argv)
     myApp.setQuitOnLastWindowClosed(True)
+
+    path = PyInstallerHelper.resource_path("icons\\main.png")
+
+    icon = QIcon(path)
+    myApp.setWindowIcon(icon)
 
     try:
         sys.argv.index("--debug")

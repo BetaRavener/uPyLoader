@@ -2,11 +2,14 @@
 
 # Form implementation generated from reading ui file './gui/qt\code_edit.ui'
 #
-# Created by: PyQt5 UI code generator 5.8.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+
+# Added by buildgui.py script to support pyinstaller
+from src.pyinstaller_helper import PyInstallerHelper
 
 class Ui_CodeEditDialog(object):
     def setupUi(self, CodeEditDialog):
@@ -36,7 +39,7 @@ class Ui_CodeEditDialog(object):
         self.saveLocalButton = QtWidgets.QPushButton(CodeEditDialog)
         self.saveLocalButton.setMaximumSize(QtCore.QSize(70, 16777215))
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("icons/floppy_disk_1-64x64.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(PyInstallerHelper.resource_path("icons/floppy.png")), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.saveLocalButton.setIcon(icon)
         self.saveLocalButton.setIconSize(QtCore.QSize(20, 20))
         self.saveLocalButton.setFlat(False)
@@ -57,7 +60,7 @@ class Ui_CodeEditDialog(object):
         self.runButton.setMinimumSize(QtCore.QSize(0, 0))
         self.runButton.setMaximumSize(QtCore.QSize(60, 16777215))
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("icons/run.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(QtGui.QPixmap(PyInstallerHelper.resource_path("icons/run.png")), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.runButton.setIcon(icon1)
         self.runButton.setIconSize(QtCore.QSize(20, 20))
         self.runButton.setFlat(False)

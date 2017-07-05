@@ -47,7 +47,6 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         if Settings().preferred_port:
             self.preferredPortLineEdit.setText(Settings().preferred_port)
 
-
     def accept(self):
         self.save_settings()
         super(SettingsDialog, self).accept()

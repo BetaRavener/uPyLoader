@@ -71,7 +71,7 @@
         </property>
         <property name="icon">
          <iconset>
-          <normaloff>icons/refresh-64x64.png</normaloff>icons/refresh-64x64.png</iconset>
+          <normaloff>icons/refresh.png</normaloff>icons/refresh.png</iconset>
         </property>
        </widget>
       </item>

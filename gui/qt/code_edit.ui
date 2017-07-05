@@ -65,7 +65,7 @@
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>icons/floppy_disk_1-64x64.png</normaloff>icons/floppy_disk_1-64x64.png</iconset>
+             <normaloff>icons/floppy.png</normaloff>icons/floppy.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -146,7 +146,7 @@
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>icons/floppy_disk_1-64x64.png</normaloff>icons/floppy_disk_1-64x64.png</iconset>
+             <normaloff>icons/floppy.png</normaloff>icons/floppy.png</iconset>
            </property>
            <property name="flat">
             <bool>false</bool>

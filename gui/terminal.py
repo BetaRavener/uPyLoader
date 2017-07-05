@@ -2,11 +2,14 @@
 
 # Form implementation generated from reading ui file './gui/qt\terminal.ui'
 #
-# Created by: PyQt5 UI code generator 5.8.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+
+# Added by buildgui.py script to support pyinstaller
+from src.pyinstaller_helper import PyInstallerHelper
 
 class Ui_TerminalDialog(object):
     def setupUi(self, TerminalDialog):

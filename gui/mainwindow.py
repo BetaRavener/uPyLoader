@@ -2,11 +2,14 @@
 
 # Form implementation generated from reading ui file './gui/qt\mainwindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.8.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+
+# Added by buildgui.py script to support pyinstaller
+from src.pyinstaller_helper import PyInstallerHelper
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -37,7 +40,7 @@ class Ui_MainWindow(object):
         self.refreshButton = QtWidgets.QPushButton(self.centralwidget)
         self.refreshButton.setText("")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("icons/refresh-64x64.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(PyInstallerHelper.resource_path("icons/refresh.png")), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.refreshButton.setIcon(icon)
         self.refreshButton.setObjectName("refreshButton")
         self.horizontalLayout_3.addWidget(self.refreshButton)

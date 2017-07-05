@@ -2,11 +2,14 @@
 
 # Form implementation generated from reading ui file './gui/qt\settings.ui'
 #
-# Created by: PyQt5 UI code generator 5.8.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+
+# Added by buildgui.py script to support pyinstaller
+from src.pyinstaller_helper import PyInstallerHelper
 
 class Ui_SettingsDialog(object):
     def setupUi(self, SettingsDialog):
@@ -76,7 +79,6 @@ class Ui_SettingsDialog(object):
         self.terminalFormLayout.setLayout(2, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_2)
         self.verticalLayout_2.addLayout(self.terminalFormLayout)
         self.verticalLayout.addWidget(self.terminalGroupBox)
-
         self.groupBox = QtWidgets.QGroupBox(SettingsDialog)
         self.groupBox.setObjectName("groupBox")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.groupBox)
@@ -99,23 +101,21 @@ class Ui_SettingsDialog(object):
         self.formLayout.setLayout(1, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_3)
         self.verticalLayout_4.addLayout(self.formLayout)
         self.verticalLayout.addWidget(self.groupBox)
-        self.portBox = QtWidgets.QGroupBox(SettingsDialog)
-        self.portBox.setObjectName("portBox")
-        self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.portBox)
+        self.groupBox_2 = QtWidgets.QGroupBox(SettingsDialog)
+        self.groupBox_2.setObjectName("groupBox_2")
+        self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.groupBox_2)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
-        self.portFormLayout = QtWidgets.QFormLayout()
-        self.portFormLayout.setObjectName("portFormLayout")
-        self.label_7 = QtWidgets.QLabel(self.portBox)
+        self.formLayout_2 = QtWidgets.QFormLayout()
+        self.formLayout_2.setObjectName("formLayout_2")
+        self.label_7 = QtWidgets.QLabel(self.groupBox_2)
         self.label_7.setObjectName("label_7")
-        self.portFormLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_7)
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.preferredPortLineEdit = QtWidgets.QLineEdit(self.portBox)
+        self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_7)
+        self.preferredPortLineEdit = QtWidgets.QLineEdit(self.groupBox_2)
+        self.preferredPortLineEdit.setMaximumSize(QtCore.QSize(200, 16777215))
         self.preferredPortLineEdit.setObjectName("preferredPortLineEdit")
-        self.horizontalLayout_2.addWidget(self.preferredPortLineEdit)
-        self.portFormLayout.setLayout(1, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_2)
-        self.verticalLayout_5.addLayout(self.portFormLayout)
-        self.verticalLayout.addWidget(self.portBox)
+        self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.preferredPortLineEdit)
+        self.verticalLayout_5.addLayout(self.formLayout_2)
+        self.verticalLayout.addWidget(self.groupBox_2)
         spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem1)
         self.buttonBox = QtWidgets.QDialogButtonBox(SettingsDialog)
@@ -133,10 +133,8 @@ class Ui_SettingsDialog(object):
         _translate = QtCore.QCoreApplication.translate
         SettingsDialog.setWindowTitle(_translate("SettingsDialog", "Settings"))
         self.editorGroupBox.setTitle(_translate("SettingsDialog", "Editor"))
-        self.portBox.setTitle(_translate("SettingsDialog", "Preferred Port"))
         self.label_4.setText(_translate("SettingsDialog", "Path to external editor"))
         self.label_5.setText(_translate("SettingsDialog", "External editor arguments"))
-        self.label_6.setText(_translate("SettingsDialog", "Port Name"))
         self.externalPathBrowseButton.setText(_translate("SettingsDialog", "..."))
         self.terminalGroupBox.setTitle(_translate("SettingsDialog", "Terminal"))
         self.label.setText(_translate("SettingsDialog", "New line key"))
@@ -145,4 +143,6 @@ class Ui_SettingsDialog(object):
         self.groupBox.setTitle(_translate("SettingsDialog", "Compiler"))
         self.label_3.setText(_translate("SettingsDialog", "mpy-cross path"))
         self.mpyPathBrowseButton.setText(_translate("SettingsDialog", "..."))
+        self.groupBox_2.setTitle(_translate("SettingsDialog", "Connection"))
+        self.label_7.setText(_translate("SettingsDialog", "Preferred port"))
 
