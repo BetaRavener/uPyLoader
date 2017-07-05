@@ -4,3 +4,7 @@ gui/__pycache__/*
 config.txt
 log.txt
 *.json
+build/*
+__pycache__/*
+run.bat
+uPyLoader.lnk

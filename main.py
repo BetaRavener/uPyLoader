@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 import time
@@ -397,11 +398,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             except OSError:
                 pass
 
-            with subprocess.Popen([Settings().mpy_cross_path, os.path.basename(path)], cwd=os.path.dirname(path), stderr=subprocess.PIPE) as proc:
-                proc.wait()  # Wait for process to finish
-                out = proc.stderr.read()
-                if out:
-                    QMessageBox.warning(self, "Compilation error", out.decode("utf-8"))
+            try:
+                with subprocess.Popen([Settings().mpy_cross_path, os.path.basename(path)], cwd=os.path.dirname(path),
+                                      stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+                    proc.wait()  # Wait for process to finish
+                    out = proc.stderr.read()
+                    if out:
+                        QMessageBox.warning(self, "Compilation error", out.decode("utf-8"))
+
+            except OSError:
+                QMessageBox.warning(self, "Compilation error", "Failed to run mpy-cross")
 
             compiled_file_paths += [mpy_path]
 
