@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 
@@ -377,11 +378,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             last_slash_idx = path.rfind("/") + 1
             directory = path[:last_slash_idx]
             name = path[last_slash_idx:]
-            with subprocess.Popen([Settings().mpy_cross_path, name], cwd=directory, stderr=subprocess.PIPE) as proc:
-                proc.wait()  # Wait for process to finish
-                out = proc.stderr.read()
-                if out:
-                    QMessageBox.warning(self, "Compilation error", out.decode("utf-8"))
+            try:
+                with subprocess.Popen([Settings().mpy_cross_path, os.path.basename(path)], cwd=os.path.dirname(path),
+                                      stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+                    proc.wait()  # Wait for process to finish
+                    out = proc.stderr.read()
+                    if out:
+                        QMessageBox.warning(self, "Compilation error", out.decode("utf-8"))
+
+            except OSError:
+                QMessageBox.warning(self, "Compilation error", "Failed to run mpy-cross")
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
