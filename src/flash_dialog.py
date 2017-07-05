@@ -117,47 +117,47 @@ class FlashDialog(QDialog, Ui_FlashDialog):
                 params.append("--erase")
             if Settings().debug_mode:
                 params.append("--debug")
-            sub = subprocess.Popen(params, stdout=subprocess.PIPE, bufsize=1)
-        except FileNotFoundError:
-            self._flash_finished_signal.emit(-1)
-            return
-
-        buf = bytearray()
-        delete = 0
-        Logger.log("Pipe receiving:\r\n")
-        while True:
-            x = sub.stdout.read(1)
-            Logger.log(x)
-
-            # Flushing content only in large blocks helps with flickering
-            # Flush output if:
-            # - didn't receive any character (timeout?)
-            # - received first backspace (content is going to be deleted)
-            # - received whitespace or dot (used to signal progress)
-            if not x \
-                    or (x[0] == 8 and delete == 0)\
-                    or (x[0] in b"\r\n\t ."):
-                with self._flash_output_mutex:
-                    if delete > 0:
-                        self._flash_output = self._flash_output[:-delete]
-                    self._flash_output.extend(buf)
-                self._flash_output_signal.emit()
+            with subprocess.Popen(params, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, bufsize=1) as sub:
                 buf = bytearray()
                 delete = 0
+                Logger.log("Pipe receiving:\r\n")
+                while True:
+                    x = sub.stdout.read(1)
+                    Logger.log(x)
 
-            if not x:
-                break
+                    # Flushing content only in large blocks helps with flickering
+                    # Flush output if:
+                    # - didn't receive any character (timeout?)
+                    # - received first backspace (content is going to be deleted)
+                    # - received whitespace or dot (used to signal progress)
+                    if not x \
+                            or (x[0] == 8 and delete == 0) \
+                            or (x[0] in b"\r\n\t ."):
+                        with self._flash_output_mutex:
+                            if delete > 0:
+                                self._flash_output = self._flash_output[:-delete]
+                            self._flash_output.extend(buf)
+                        self._flash_output_signal.emit()
+                        buf = bytearray()
+                        delete = 0
 
-            if x[0] == 8:
-                delete += 1
-            else:
-                buf.append(x[0])
+                    if not x:
+                        break
 
-        Logger.log("\r\nPipe end.\r\n")
-        sub.stdout.close()
-        code = sub.wait()
+                    if x[0] == 8:
+                        delete += 1
+                    else:
+                        buf.append(x[0])
 
-        self._flash_finished_signal.emit(code)
+                Logger.log("\r\nPipe end.\r\n")
+                sub.stdout.close()
+                code = sub.wait()
+
+                self._flash_finished_signal.emit(code)
+        except (FileNotFoundError, OSError):
+            self._flash_finished_signal.emit(-1)
+            return
 
     def _start(self, flash, erase):
         self._flash_output = bytearray()
