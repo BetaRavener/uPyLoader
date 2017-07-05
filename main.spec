@@ -8,7 +8,7 @@ import PyQt5
 import serial
 
 a = Analysis(['main.py'],
-             pathex=['C:\\Users\\celtofj\\My Documents\\github\\uPyLoader', os.path.join(ntpath.dirname(PyQt5.__file__), 'Qt', 'bin')],
+             pathex=[os.path.join(ntpath.dirname(PyQt5.__file__), 'Qt', 'bin')],
              binaries=[],
              datas=[],
              hiddenimports=[],

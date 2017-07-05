@@ -2,10 +2,10 @@ import os
 import subprocess
 import sys
 
-from PyQt5.QtCore import QStringListModel, QModelIndex, Qt
+from PyQt5.QtCore import QStringListModel, QModelIndex, Qt, QItemSelectionModel
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
-    QFileDialog, QInputDialog, QLineEdit, QMessageBox
+    QFileDialog, QInputDialog, QLineEdit, QMessageBox, QHeaderView
 
 from gui.mainwindow import Ui_MainWindow
 from src.baud_options import BaudOptions
@@ -80,6 +80,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         local_selection_model = self.localFilesTreeView.selectionModel()
         local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.doubleClicked.connect(self.open_local_file)
+
+        # Set the "Name" column to always fit the content
+        self.localFilesTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
 
         self.compileButton.clicked.connect(self.compile_files)
         self.update_compile_button()
@@ -194,6 +197,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         model = QFileSystemModel()
         model.setRootPath(self._root_dir)
         self.localFilesTreeView.setModel(model)
+        local_selection_model = self.localFilesTreeView.selectionModel()
+        local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.setRootIndex(model.index(self._root_dir))
 
     def list_mcu_files(self):
@@ -376,10 +381,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def compile_files(self):
         local_file_paths = self.get_local_file_selection()
+        compiled_file_paths = []
         for path in local_file_paths:
-            last_slash_idx = path.rfind("/") + 1
-            directory = path[:last_slash_idx]
-            name = path[last_slash_idx:]
+            split = os.path.splitext(path)
+            if split[1] == ".mpy":
+                title = "COMPILE WARNING!! " + os.path.basename(path)
+                QMessageBox.warning(self, title, "Can't compile .mpy files, already bytecode")
+                continue
+            mpy_path = split[0]+".mpy"
+
+            try:
+                os.remove(mpy_path)
+                # Force view to update itself
+                self.localFilesTreeView.repaint()
+                #QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
+            except OSError:
+                pass
+
             try:
                 with subprocess.Popen([Settings().mpy_cross_path, os.path.basename(path)], cwd=os.path.dirname(path),
                                       stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
@@ -390,6 +408,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             except OSError:
                 QMessageBox.warning(self, "Compilation error", "Failed to run mpy-cross")
+
+            compiled_file_paths += [mpy_path]
+
+        selection_model = self.localFilesTreeView.selectionModel()
+        if compiled_file_paths:
+            assert isinstance(selection_model, QItemSelectionModel)
+            selection_model.clearSelection()
+
+        for mpy_path in compiled_file_paths:
+            idx = self.localFilesTreeView.model().index(mpy_path)
+            selection_model.select(idx, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+        self.localFilesTreeView.repaint()
+        #QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
+
+        if self.autoTransferCheckBox.isChecked() and self._connection and self._connection.is_connected():
+            self.transfer_to_mcu()
 
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
