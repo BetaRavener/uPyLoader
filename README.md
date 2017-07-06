@@ -20,14 +20,11 @@ Terminal  | Code Editor  | Settings
 ![](https://s29.postimg.org/lzk00rxw7/term.png)  |  ![](https://s29.postimg.org/nan5vi447/editor.png) | ![](https://s29.postimg.org/6pfjfud07/settings.png) 
 
 ### Setup:
-Clone this repository.
-The uPyLoader runs on Python3 and requires PyQt5 and PySerial above version 3. 
-Use pip to download these two via `pip install PyQt5` and `pip install pyserial>=3.1.1`. OS-X users can also use script ` 	install_osx_dependencies.sh` in root directory provided by @sarusso to install dependencies automatically. 
+#### Windows Users
+Download [latest release](https://github.com/BetaRavener/uPyLoader/releases) executable and run it.
 
-Inside this root directory, use `python main.py` to run the application. Depending on your python setup, you may need to actually run it with `python3 main.py`. Try this if the application crashes on startup.
-
-If having problems downloading PyQt5 on Debian distro (Ubuntu, Mint,..), try `sudo apt-get install python3-pyqt5`.
-Another way to obtain PyQt5 is by [installing from source]( http://pyqt.sourceforge.net/Docs/PyQt5/installation.html#building-and-installing-from-source).
+#### General approach
+Please see [this wiki page on running uPyLoader from source](https://github.com/BetaRavener/uPyLoader/wiki/Running-uPyLoader-from-source).
 
 ### Usage:
 #### Main Window:
