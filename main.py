@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 
-from PyQt5.QtCore import QStringListModel, QModelIndex, Qt, QItemSelectionModel
+from PyQt5.QtCore import QStringListModel, QModelIndex, Qt, QItemSelectionModel, QEventLoop
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
     QFileDialog, QInputDialog, QLineEdit, QMessageBox, QHeaderView
@@ -86,6 +86,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.compileButton.clicked.connect(self.compile_files)
         self.update_compile_button()
+        self.autoTransferCheckBox.setChecked(Settings().auto_transfer)
 
         self.transferToMcuButton.clicked.connect(self.transfer_to_mcu)
         self.transferToPcButton.clicked.connect(self.transfer_to_pc)
@@ -94,6 +95,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def closeEvent(self, event):
         Settings().root_dir = self._root_dir
+        Settings().auto_transfer = self.autoTransferCheckBox.isChecked()
         Settings().update_geometry("main", self.saveGeometry())
         Settings().save()
         if self._connection is not None and self._connection.is_connected():
@@ -382,24 +384,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def compile_files(self):
         local_file_paths = self.get_local_file_selection()
         compiled_file_paths = []
-        for path in local_file_paths:
-            split = os.path.splitext(path)
+
+        for local_path in local_file_paths:
+            split = os.path.splitext(local_path)
             if split[1] == ".mpy":
-                title = "COMPILE WARNING!! " + os.path.basename(path)
+                title = "COMPILE WARNING!! " + os.path.basename(local_path)
                 QMessageBox.warning(self, title, "Can't compile .mpy files, already bytecode")
                 continue
             mpy_path = split[0]+".mpy"
 
             try:
                 os.remove(mpy_path)
-                # Force view to update itself
+                # Force view to update itself so that it sees file removed
                 self.localFilesTreeView.repaint()
-                #QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
+                QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
             except OSError:
                 pass
 
             try:
-                with subprocess.Popen([Settings().mpy_cross_path, os.path.basename(path)], cwd=os.path.dirname(path),
+                with subprocess.Popen([Settings().mpy_cross_path, os.path.basename(local_path)],
+                                      cwd=os.path.dirname(local_path),
                                       stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
                     proc.wait()  # Wait for process to finish
                     out = proc.stderr.read()
@@ -411,6 +415,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             compiled_file_paths += [mpy_path]
 
+        # Force view to update so that it sees compiled files added
+        self.localFilesTreeView.repaint()
+        QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
+
+        # Force view to update last time so that it resorts the content
+        # Without this, the new file will be placed at the bottom of the view no matter what
+        header = self.localFilesTreeView.header()
+        column = header.sortIndicatorSection()
+        order = header.sortIndicatorOrder()
+        # This is necessary so that view actually sorts anything again
+        self.localFilesTreeView.sortByColumn(-1, Qt.AscendingOrder)
+        QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
+        self.localFilesTreeView.sortByColumn(column, order)
+
         selection_model = self.localFilesTreeView.selectionModel()
         if compiled_file_paths:
             assert isinstance(selection_model, QItemSelectionModel)
@@ -419,8 +437,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for mpy_path in compiled_file_paths:
             idx = self.localFilesTreeView.model().index(mpy_path)
             selection_model.select(idx, QItemSelectionModel.Select | QItemSelectionModel.Rows)
-        self.localFilesTreeView.repaint()
-        #QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
 
         if self.autoTransferCheckBox.isChecked() and self._connection and self._connection.is_connected():
             self.transfer_to_mcu()

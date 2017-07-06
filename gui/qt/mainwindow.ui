@@ -319,14 +319,37 @@
           <property name="selectionMode">
            <enum>QAbstractItemView::ExtendedSelection</enum>
           </property>
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="compileButton">
-          <property name="text">
-           <string>Compile</string>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <property name="topMargin">
+           <number>0</number>
           </property>
-         </widget>
+          <item>
+           <widget class="QPushButton" name="compileButton">
+            <property name="text">
+             <string>Compile</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="autoTransferCheckBox">
+            <property name="maximumSize">
+             <size>
+              <width>90</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Auto-transfer</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -483,7 +506,7 @@
      <x>0</x>
      <y>0</y>
      <width>794</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

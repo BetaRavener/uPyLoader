@@ -31,6 +31,7 @@ class Settings(metaclass=Singleton):
         self.terminal_tab_spaces = 4
         self.mpy_cross_path = None
         self.preferred_port = None
+        self.auto_transfer = False
 
         if not self.load():
             if not self.load_old():
