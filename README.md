@@ -20,7 +20,7 @@ Terminal  | Code Editor  | Settings
 ![](https://s29.postimg.org/lzk00rxw7/term.png)  |  ![](https://s29.postimg.org/nan5vi447/editor.png) | ![](https://s29.postimg.org/6pfjfud07/settings.png) 
 
 ### Setup:
-#### Windows Users
+#### Using executable file (Windows and Linux)
 Download [latest release](https://github.com/BetaRavener/uPyLoader/releases) executable and run it.
 
 #### General approach
