@@ -1,5 +1,3 @@
-from json import JSONDecodeError
-
 from PyQt5.QtCore import QByteArray
 from PyQt5.QtCore import QDir
 import json
@@ -66,7 +64,7 @@ class Settings(metaclass=Singleton):
             with open("config.json") as file:
                 for key, val in self.deserialize(json.load(file)).items():
                     self.__dict__[key] = val
-        except (FileNotFoundError, JSONDecodeError):
+        except (FileNotFoundError, ValueError):
             return False
 
         return True
