@@ -1,4 +1,9 @@
-from json import JSONDecodeError
+import json
+
+try:
+    from json.decoder import JSONDecodeError
+except ImportError:
+    JSONDecodeError = ValueError
 
 from PyQt5.QtCore import QByteArray
 from PyQt5.QtCore import QDir
