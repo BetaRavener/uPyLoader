@@ -19,9 +19,11 @@ a = Analysis(['main.py'],
              win_private_assemblies=False,
              cipher=block_cipher)
 a.datas += [('icons//main.png','icons//main.png','DATA'),
-			('icons//floppy.png','icons//floppy.png','DATA'),
-			('icons//refresh.png','icons//refresh.png','DATA'),
-			('icons//run.png','icons//run.png','DATA')]
+            ('icons//floppy.png','icons//floppy.png','DATA'),
+            ('icons//refresh.png','icons//refresh.png','DATA'),
+            ('icons//run.png','icons//run.png','DATA'),
+            ('mcu//download.py','mcu//download.py','DATA'),
+            ('mcu//upload.py','mcu//upload.py','DATA')]
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,

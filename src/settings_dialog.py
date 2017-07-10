@@ -47,6 +47,10 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         if Settings().preferred_port:
             self.preferredPortLineEdit.setText(Settings().preferred_port)
 
+        if Settings().external_transfer_scripts_folder:
+            self.transferFilesPathLineEdit.setText(Settings().external_transfer_scripts_folder)
+        self.transferFilesPathBrowseButton.clicked.connect(self.browse_external_transfer_files)
+
     def accept(self):
         self.save_settings()
         super(SettingsDialog, self).accept()
@@ -69,6 +73,15 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         if path[0]:
             self.mpyCrossPathLineEdit.setText(path[0])
 
+    def browse_external_transfer_files(self):
+        path = QFileDialog().getExistingDirectory(
+            caption="Select transfer files folder",
+            directory=QDir().homePath(),
+            options=QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+
+        if path:
+            self.transferFilesPathLineEdit.setText(path)
+
     def save_settings(self):
         Settings().external_editor_path = self.externalPathLineEdit.text()
         Settings().external_editor_args = self.externalCommandLineEdit.text()
@@ -77,6 +90,7 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         Settings().terminal_tab_spaces = self.tabSpacesSpinBox.value()
         Settings().mpy_cross_path = self.mpyCrossPathLineEdit.text()
         Settings().preferred_port = self.preferredPortLineEdit.text()
+        Settings().external_transfer_scripts_folder = self.transferFilesPathLineEdit.text()
         Settings().save()
 
     @staticmethod

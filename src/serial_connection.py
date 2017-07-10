@@ -1,3 +1,4 @@
+import os
 from threading import Thread
 
 import re
@@ -7,6 +8,7 @@ import time
 from src.connection import Connection
 from src.exceptions import OperationError
 from src.file_transfer import FileTransfer, ReadResult
+from src.pyinstaller_helper import PyInstallerHelper
 from src.setting import Settings
 
 
@@ -169,8 +171,21 @@ class SerialConnection(Connection):
         self._auto_reader_lock.release()
         return success
 
+    @staticmethod
+    def _transfer_file_path(transfer_file_name):
+        # External transfer scripts folder should be used (use case: files need to be edited)
+        if Settings().external_transfer_scripts_folder:
+            path = "".join([Settings().external_transfer_scripts_folder, "/", transfer_file_name])
+            # Check if file exists. If not, ignore external folder path.
+            if os.path.isfile(path):
+                return path
+            else:
+                raise FileNotFoundError
+
+        return PyInstallerHelper.resource_path("mcu/" + transfer_file_name)
+
     def send_upload_file(self, file_name):
-        with open("mcu/upload.py") as f:
+        with open(SerialConnection._transfer_file_path("upload.py")) as f:
             data = f.read()
             data = data.replace("file_name.py", file_name)
             self.send_start_paste()
@@ -180,7 +195,7 @@ class SerialConnection(Connection):
             self.send_end_paste()
 
     def send_download_file(self, file_name):
-        with open("mcu/download.py") as f:
+        with open(SerialConnection._transfer_file_path("download.py")) as f:
             data = f.read()
             data = data.replace("file_name.py", file_name)
             self.send_start_paste()
@@ -194,19 +209,22 @@ class SerialConnection(Connection):
         transfer.set_file_count(2)
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
-        self.send_upload_file("__upload.py")
-        self.read_all()
-        with open("mcu/upload.py") as f:
-            data = f.read()
-            data = data.replace("\"file_name.py\"", "file_name")
-            res = self.send_file(data.encode('utf-8'), transfer)
+        try:
+            self.send_upload_file("__upload.py")
+            self.read_all()
+            with open(SerialConnection._transfer_file_path("upload.py")) as f:
+                data = f.read()
+                data = data.replace("\"file_name.py\"", "file_name")
+                res = self.send_file(data.encode('utf-8'), transfer)
 
-        self.send_upload_file("__download.py")
-        self.read_all()
-        with open("mcu/download.py") as f:
-            data = f.read()
-            data = data.replace("\"file_name.py\"", "file_name")
-            res = self.send_file(data.encode('utf-8'), transfer)
+            self.run_file("__upload.py", "file_name=\"{}\"".format("__download.py"))
+            self.read_all()
+            with open(SerialConnection._transfer_file_path("download.py")) as f:
+                data = f.read()
+                data = data.replace("\"file_name.py\"", "file_name")
+                res = self.send_file(data.encode('utf-8'), transfer)
+        except FileNotFoundError:
+            transfer.mark_error()
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
@@ -292,23 +310,35 @@ class SerialConnection(Connection):
 
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
+        transfer_ready = True
         if Settings().use_transfer_scripts:
             self.run_file("__upload.py", "file_name=\"{}\"".format(file_name))
         else:
-            self.send_upload_file(file_name)
-        self.read_junk()
-        self.send_file(text, transfer)
+            try:
+                self.send_upload_file(file_name)
+            except FileNotFoundError:
+                transfer_ready = False
+                transfer.mark_error()
+        if transfer_ready:
+            self.read_junk()
+            self.send_file(text, transfer)
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
     def _read_file_job(self, file_name, transfer):
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
+        transfer_ready = True
         if Settings().use_transfer_scripts:
             self.run_file("__download.py", "file_name=\"{}\"".format(file_name))
         else:
-            self.send_download_file(file_name)
-        self.read_junk()
-        self.recv_file(transfer)
+            try:
+                self.send_download_file(file_name)
+            except FileNotFoundError:
+                transfer_ready = False
+                transfer.mark_error()
+        if transfer_ready:
+            self.read_junk()
+            self.recv_file(transfer)
         self._auto_read_enabled = True
         self._auto_reader_lock.release()

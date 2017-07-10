@@ -17,6 +17,7 @@ class Settings(metaclass=Singleton):
         self.send_sleep = 0.1
         self.read_sleep = 0.1
         self.use_transfer_scripts = True
+        self.external_transfer_scripts_folder = None
         self.wifi_presets = []
         self.python_flash_executable = None
         self.last_firmware_directory = None

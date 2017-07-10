@@ -8,3 +8,5 @@ build/*
 __pycache__/*
 run.bat
 uPyLoader.lnk
+dist/*
+*.exe
