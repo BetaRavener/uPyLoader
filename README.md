@@ -52,6 +52,8 @@ On startup, the application scans for working UART connection and lists them in 
 Select the desired connection port and click Connect. The status will change to green `Connected` on success.
 When connecting through WiFi, make sure that you are connected to the AP of the board or the board is connected to the same local network and the IP is correct.
 
+**Note:** If you are **Linux user and your serial port doesn't show up** in `Port` box even after refresh, try setting permissions for the port (e.g. `sudo chmod 666 /dev/ttyUSB0`, where `ttyUSB0` is the serial port device). 
+
 **Note:** If connecting to the board over wifi for first time, older micropython version will ask for new password in WebREPL. To prevent stall, the password will be set automatically to `passw`. You can change it later in file `webrepl_cfg.py` (board reboot is required afterwards). New micropython version will ask for password when setting up the WebREPL.
 
 #### File transfer:
