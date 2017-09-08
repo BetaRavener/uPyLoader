@@ -24,7 +24,10 @@ Terminal  | Code Editor  | Settings
 Download [latest release](https://github.com/BetaRavener/uPyLoader/releases) executable and run it.
 
 #### General approach
-Please see [this wiki page on running uPyLoader from source](https://github.com/BetaRavener/uPyLoader/wiki/Running-uPyLoader-from-source).
+Please see this [wiki page](https://github.com/BetaRavener/uPyLoader/wiki/Running-uPyLoader-from-source) on running uPyLoader from source.
+
+### Development:
+Please refer to this [wiki page](https://github.com/BetaRavener/uPyLoader/wiki/Development-notes) for instructions on how to edit and build source files.
 
 ### Usage:
 #### Main Window:
