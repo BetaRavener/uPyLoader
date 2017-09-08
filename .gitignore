@@ -10,3 +10,4 @@ run.bat
 uPyLoader.lnk
 dist/*
 *.exe
+*.swp
