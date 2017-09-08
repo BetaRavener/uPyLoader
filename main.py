@@ -134,12 +134,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.statusLabel.setStyleSheet("QLabel { background-color : none; color : green; font : bold;}")
         elif status == "Disconnected":
             self.statusLabel.setStyleSheet("QLabel { background-color : none; color : red; }")
+        elif status == "Connecting...":
+            self.statusLabel.setStyleSheet("QLabel { background-color : none; color : blue; }")
         elif status == "Error":
             self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
         elif status == "Password":
             self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
             status = "Wrong Password"
+        else:
+            self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
         self.statusLabel.setText(status)
+        QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
 
     def update_compile_button(self):
         self.compileButton.setEnabled(bool(Settings().mpy_cross_path) and
@@ -203,6 +208,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.setRootIndex(model.index(self._root_dir))
 
+    def serial_mcu_connection_valid(self):
+        file_list = []
+        try:
+            file_list = self._connection.list_files()
+            return True
+        except OperationError:
+            file_list = None
+            return False
+
     def list_mcu_files(self):
         file_list = []
         try:
@@ -255,6 +269,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return input_dlg.textValue()
 
     def start_connection(self):
+        self.set_status("Connecting...")
+
         connection = self._connection_scanner.port_list[self.connectionComboBox.currentIndex()]
 
         if connection == "wifi":
@@ -281,6 +297,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             baud_rate = BaudOptions.speeds[self.baudComboBox.currentIndex()]
             self._connection = SerialConnection(connection, baud_rate, self._terminal,
                                                 self.serialResetCheckBox.isChecked())
+            if self._connection.is_connected():
+               if not self.serial_mcu_connection_valid():
+                  self._connection.disconnect()
+                  self._connection = None
+            else:
+               # serial connection didn't work, so likely the unplugged the serial device and COM value is stale
+               self.refresh_ports()
 
         if self._connection is not None and self._connection.is_connected():
             self.connected()
@@ -294,6 +317,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self._connection = None
             self.set_status("Error")
+            self.refresh_ports()
 
     def end_connection(self):
         self._connection.disconnect()
@@ -409,9 +433,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     out = proc.stderr.read()
                     if out:
                         QMessageBox.warning(self, "Compilation error", out.decode("utf-8"))
+                        continue
 
             except OSError:
                 QMessageBox.warning(self, "Compilation error", "Failed to run mpy-cross")
+                continue
 
             compiled_file_paths += [mpy_path]
 
@@ -438,7 +464,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             idx = self.localFilesTreeView.model().index(mpy_path)
             selection_model.select(idx, QItemSelectionModel.Select | QItemSelectionModel.Rows)
 
-        if self.autoTransferCheckBox.isChecked() and self._connection and self._connection.is_connected():
+        if (self.autoTransferCheckBox.isChecked() and self._connection and self._connection.is_connected()
+            and compiled_file_paths):
             self.transfer_to_mcu()
 
     def finished_read_mcu_file(self, file_name, transfer):
