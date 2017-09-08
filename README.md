@@ -23,6 +23,9 @@ Terminal  | Code Editor  | Settings
 #### Using executable file (Windows and Linux)
 Download [latest release](https://github.com/BetaRavener/uPyLoader/releases) executable and run it.
 
+To build your own executble after changes use the command "pyinstaller main.spec" and the output will be dist/uPyLoader.exe
+If you need pyinstaller you can install that with "pip install pyinstaller"
+
 #### General approach
 Please see this [wiki page](https://github.com/BetaRavener/uPyLoader/wiki/Running-uPyLoader-from-source) on running uPyLoader from source.
 
