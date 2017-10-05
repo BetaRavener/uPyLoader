@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QByteArray
 from PyQt5.QtCore import QDir
 import json
+import os
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
@@ -106,7 +107,7 @@ class Settings(metaclass=Singleton):
 
     def save(self):
         try:
-            with open("config.json", "r+") as file:
+            with open(os.open('config.json', os.O_WRONLY | os.O_TRUNC), 'w') as file:
                 json.dump(self.serialize(), file)
         except IOError:
             pass
