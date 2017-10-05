@@ -106,7 +106,7 @@ class Settings(metaclass=Singleton):
 
     def save(self):
         try:
-            with open("config.json", "w") as file:
+            with open("config.json", "r+") as file:
                 json.dump(self.serialize(), file)
         except IOError:
             pass
