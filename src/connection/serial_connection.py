@@ -1,15 +1,15 @@
 import os
+import re
+import time
 from threading import Thread
 
-import re
 import serial
-import time
+from src.setting import Settings
 
 from src.connection import Connection
-from src.exceptions import OperationError
-from src.file_transfer import FileTransfer, ReadResult
-from src.pyinstaller_helper import PyInstallerHelper
-from src.setting import Settings
+from src.helpers.pyinstaller_helper import PyInstallerHelper
+from src.logic.file_transfer import FileTransfer
+from src.utility.exceptions import OperationError
 
 
 class SerialConnection(Connection):

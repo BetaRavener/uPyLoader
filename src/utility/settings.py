@@ -1,12 +1,12 @@
-from PyQt5.QtCore import QByteArray
-from PyQt5.QtCore import QDir
 import json
 import os
 
+from PyQt5.QtCore import QByteArray
+from PyQt5.QtCore import QDir
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 
-from src.singleton import Singleton
+from src.utility.singleton import Singleton
 
 
 class Settings(metaclass=Singleton):

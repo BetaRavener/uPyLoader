@@ -3,11 +3,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QKeySequenceEdit
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QWidgetItem
 
 from gui.settings import Ui_SettingsDialog
-from src.setting import Settings
+from src.utility.settings import Settings
 
 
 class SettingsDialog(QDialog, Ui_SettingsDialog):

@@ -1,4 +1,4 @@
-from src.signal_interface import Event
+from src.utility.signal_interface import Event
 
 
 class Terminal:

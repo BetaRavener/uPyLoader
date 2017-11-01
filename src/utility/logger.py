@@ -1,4 +1,4 @@
-from src.setting import Settings
+from src.utility.settings import Settings
 
 
 class Logger:

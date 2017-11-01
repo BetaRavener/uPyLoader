@@ -2,13 +2,12 @@ from PyQt5.QtCore import QEvent
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QKeyEvent, QHideEvent, QFontDatabase, QTextCursor
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtGui import QWindow
 from PyQt5.QtWidgets import QDialog, QScrollBar
 
 from gui.terminal import Ui_TerminalDialog
-from src.qt_helper import QtHelper
-from src.setting import Settings
-from src.signal_interface import Listener
+from src.helpers.qt_helper import QtHelper
+from src.utility.settings import Settings
+from src.utility.signal_interface import Listener
 
 __author__ = "Ivan Sevcik"
 

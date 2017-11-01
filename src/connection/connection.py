@@ -1,7 +1,7 @@
 import time
 from threading import Lock, Thread
 
-from src.exceptions import OperationError
+from src.utility.exceptions import OperationError
 
 
 class Connection:
@@ -121,7 +121,7 @@ class Connection:
             with open(local_path, "rb") as f:
                 content = f.read()
                 self._write_file_job(remote_name, content, transfer)
-                if transfer.cancel_sheduled:
+                if transfer.cancel_scheduled:
                     transfer.confirm_cancel()
                 if transfer.error or transfer.cancelled:
                     break

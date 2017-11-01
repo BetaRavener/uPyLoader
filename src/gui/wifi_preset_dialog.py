@@ -2,8 +2,8 @@ from PyQt5.QtCore import QStringListModel, QModelIndex, Qt
 from PyQt5.QtWidgets import QDialog, QMessageBox
 
 from gui.wifi_preset import Ui_WiFiPresetDialog
-from src.ip_helper import IpHelper
-from src.setting import Settings
+from src.helpers.ip_helper import IpHelper
+from src.utility.settings import Settings
 
 __author__ = "Ivan Sevcik"
 

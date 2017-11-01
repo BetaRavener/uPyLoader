@@ -6,10 +6,9 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 # Added by buildgui.py script to support pyinstaller
-from src.pyinstaller_helper import PyInstallerHelper
 
 class Ui_FileTransferDialog(object):
     def setupUi(self, FileTransferDialog):

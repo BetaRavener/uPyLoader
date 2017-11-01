@@ -4,7 +4,7 @@ from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QMessageBox, QDialog
 
 from gui.file_transfer import Ui_FileTransferDialog
-from src.file_transfer import FileTransfer
+from src.logic.file_transfer import FileTransfer
 
 
 class FileTransferDialog(QDialog, Ui_FileTransferDialog):

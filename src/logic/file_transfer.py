@@ -8,7 +8,7 @@ class FileTransfer:
         self._progress = 0
         self._file = 0
         self._file_count = 1
-        self._cancel_sheduled = False
+        self._cancel_scheduled = False
         self._cancelled = False
         self._finished = False
         self._error = False
@@ -37,11 +37,11 @@ class FileTransfer:
         self._signal()
 
     def cancel(self):
-        self._cancel_sheduled = True
+        self._cancel_scheduled = True
 
     @property
-    def cancel_sheduled(self):
-        return self._cancel_sheduled
+    def cancel_scheduled(self):
+        return self._cancel_scheduled
 
     @property
     def cancelled(self):

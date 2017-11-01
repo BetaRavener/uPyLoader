@@ -1,14 +1,10 @@
-from time import sleep
-
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFontDatabase
-from PyQt5.QtGui import QWindow
-from PyQt5.QtWidgets import QProgressDialog, QMessageBox, QDialog
+from PyQt5.QtWidgets import QMessageBox, QDialog
 
 from gui.code_edit import Ui_CodeEditDialog
-from src.file_transfer import FileTransfer
-from src.file_transfer_dialog import FileTransferDialog
-from src.setting import Settings
+from src.gui.file_transfer_dialog import FileTransferDialog
+from src.utility.settings import Settings
 
 
 class CodeEditDialog(QDialog, Ui_CodeEditDialog):

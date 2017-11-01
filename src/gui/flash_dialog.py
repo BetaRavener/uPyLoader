@@ -7,9 +7,9 @@ from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QDialog, QScrollBar, QMessageBox, QFileDialog
 
 from gui.flash_dialog import Ui_FlashDialog
-from src.connection_scanner import ConnectionScanner
-from src.logger import Logger
-from src.setting import Settings
+from src.connection.connection_scanner import ConnectionScanner
+from src.utility.logger import Logger
+from src.utility.settings import Settings
 
 
 class FlashDialog(QDialog, Ui_FlashDialog):

@@ -9,7 +9,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 # Added by buildgui.py script to support pyinstaller
-from src.pyinstaller_helper import PyInstallerHelper
 
 class Ui_WiFiPresetDialog(object):
     def setupUi(self, WiFiPresetDialog):

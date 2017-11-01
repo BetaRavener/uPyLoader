@@ -3,13 +3,11 @@ import socket
 import struct
 from threading import Thread
 
-import math
-
-from src import websocket_helper
 from src.connection import Connection
-from src.file_transfer import FileTransfer
-from src.exceptions import PasswordException, NewPasswordException, OperationError
-from src.websocket import WebSocket
+from src.connection.websocket import WebSocket
+from src.helpers import websocket_helper
+from src.logic.file_transfer import FileTransfer
+from src.utility.exceptions import PasswordException, NewPasswordException, OperationError
 
 
 class WifiConnection(Connection):
