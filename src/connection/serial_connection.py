@@ -112,27 +112,6 @@ class SerialConnection(Connection):
     def read_one_byte(self):
         return self._serial.read(1)
 
-    def list_files(self):
-        success = True
-        self._auto_reader_lock.acquire()
-        self._auto_read_enabled = False
-        self.send_kill()
-        self.read_junk()
-        self.send_line("import os; os.listdir()")
-        self._serial.flush()
-        ret = ""
-        try:
-            ret = self.read_to_next_prompt()
-        except TimeoutError:
-            success = False
-        self._auto_read_enabled = True
-        self._auto_reader_lock.release()
-
-        if success and ret:
-            return re.findall("'([^']+)'", ret)
-        else:
-            raise OperationError()
-
     @staticmethod
     def escape_characters(text):
         ret = ""

@@ -141,25 +141,6 @@ class WifiConnection(Connection):
         assert isinstance(ending, str)
         self.ws.write(line_text + ending)
 
-    #TODO: Could be merged with serial connection?
-    def list_files(self):
-        success = True
-        self._auto_reader_lock.acquire()
-        self._auto_read_enabled = False
-        self.read_junk()
-        self.ws.write("import os;os.listdir()\r\n")
-        ret = ""
-        try:
-            ret = self.read_to_next_prompt()
-        except TimeoutError:
-            success = False
-        self._auto_read_enabled = True
-        self._auto_reader_lock.release()
-        if success and ret:
-            return re.findall("'([^']+)'", ret)
-        else:
-            raise OperationError()
-
     @staticmethod
     def read_resp(ws):
         data = ws.read(4)

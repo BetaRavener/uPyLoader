@@ -195,7 +195,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def list_mcu_files(self):
         try:
-            self.remoteFilesTreeView.model.refresh()
+            self.remoteFilesTreeView.model().refresh(self._connection)
         except OperationError:
             QMessageBox().critical(self, "Operation failed", "Could not list files.", QMessageBox.Ok)
             return
