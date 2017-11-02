@@ -269,7 +269,7 @@
        <enum>Qt::Horizontal</enum>
       </property>
       <widget class="QWidget" name="verticalLayoutWidget_2">
-       <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0,0">
+       <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0">
         <property name="rightMargin">
          <number>0</number>
         </property>
@@ -291,7 +291,7 @@
          </widget>
         </item>
         <item>
-         <widget class="TransferTreeView" name="localFilesTreeView">
+         <widget class="LocalTreeView" name="localFilesTreeView">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -340,42 +340,12 @@
            <widget class="QCheckBox" name="autoTransferCheckBox">
             <property name="maximumSize">
              <size>
-              <width>90</width>
+              <width>100</width>
               <height>16777215</height>
              </size>
             </property>
             <property name="text">
              <string>Auto-transfer</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4">
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QLabel" name="label_9">
-            <property name="text">
-             <string>MCU name:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="remoteNameEdit"/>
-          </item>
-          <item>
-           <widget class="QPushButton" name="transferToMcuButton">
-            <property name="maximumSize">
-             <size>
-              <width>70</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Transfer</string>
             </property>
            </widget>
           </item>
@@ -406,27 +376,12 @@
          </widget>
         </item>
         <item>
-         <widget class="QListView" name="mcuFilesListView">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
+         <widget class="RemoteTreeView" name="remoteFilesTreeView">
+          <property name="selectionMode">
+           <enum>QAbstractItemView::ExtendedSelection</enum>
           </property>
-          <property name="minimumSize">
-           <size>
-            <width>150</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="editTriggers">
-           <set>QAbstractItemView::NoEditTriggers</set>
+          <property name="sortingEnabled">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -459,36 +414,6 @@
            <widget class="QPushButton" name="removeButton">
             <property name="text">
              <string>Remove</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QLabel" name="label_8">
-            <property name="text">
-             <string>PC path:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="localPathEdit"/>
-          </item>
-          <item>
-           <widget class="QPushButton" name="transferToPcButton">
-            <property name="maximumSize">
-             <size>
-              <width>70</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Transfer</string>
             </property>
            </widget>
           </item>
@@ -568,9 +493,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>TransferTreeView</class>
+   <class>LocalTreeView</class>
    <extends>QTreeView</extends>
-   <header>transfertreeview.h</header>
+   <header>localtreeview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RemoteTreeView</class>
+   <extends>QTreeView</extends>
+   <header>remotetreeview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

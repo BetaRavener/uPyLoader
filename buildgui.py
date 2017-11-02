@@ -23,8 +23,13 @@ def next_line_start(content, idx):
 
 
 def change_controls_path(content):
-    content = content.replace("from transfertreeview import TransferTreeView",
-                              "from src.gui.controls.transfer_tree_view import TransferTreeView")
+    mappings = [("TransferTreeView", "transfertreeview", "src.gui.controls.transfer_tree_view"),
+                ("LocalTreeView", "localtreeview", "src.gui.controls.local_tree_view"),
+                ("RemoteTreeView", "remotetreeview", "src.gui.controls.remote_tree_view")]
+
+    for m in mappings:
+        content = content.replace("from {} import {}".format(m[1], m[0]),
+                                  "from {} import {}".format(m[2], m[0]))
     return content
 
 

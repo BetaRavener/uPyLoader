@@ -35,7 +35,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self._connection_scanner = ConnectionScanner()
         self._connection = None
-        self._root_dir = Settings().root_dir
         self._mcu_files_model = None
         self._terminal = Terminal()
         self._terminal_dialog = None
@@ -63,17 +62,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.presetButton.clicked.connect(self.show_presets)
         self.connectButton.clicked.connect(self.connect_pressed)
 
-        self.update_file_tree()
+        self.localFilesTreeView.set_root_dir(Settings().root_dir)
 
         self.listButton.clicked.connect(self.list_mcu_files)
-        self.mcuFilesListView.clicked.connect(self.mcu_file_selection_changed)
-        self.mcuFilesListView.doubleClicked.connect(self.read_mcu_file)
+        #TODO:
+        self.remoteFilesTreeView.doubleClicked.connect(self.read_mcu_file)
         self.executeButton.clicked.connect(self.execute_mcu_code)
         self.removeButton.clicked.connect(self.remove_file)
-        self.localPathEdit.setText(self._root_dir)
 
-        local_selection_model = self.localFilesTreeView.selectionModel()
-        local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.doubleClicked.connect(self.open_local_file)
 
         # Set the "Name" column to always fit the content
@@ -83,13 +79,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.update_compile_button()
         self.autoTransferCheckBox.setChecked(Settings().auto_transfer)
 
-        self.transferToMcuButton.clicked.connect(self.transfer_to_mcu)
-        self.transferToPcButton.clicked.connect(self.transfer_to_pc)
-
         self.disconnected()
 
     def closeEvent(self, event):
-        Settings().root_dir = self._root_dir
+        Settings().root_dir = self.localFilesTreeView.root_dir()
         Settings().auto_transfer = self.autoTransferCheckBox.isChecked()
         Settings().update_geometry("main", self.saveGeometry())
         Settings().save()
@@ -148,17 +141,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def disconnected(self):
         self.connectButton.setText("Connect")
         self.set_status("Disconnected")
-        self.listButton.setEnabled(False)
+        # TODO:
+        # self.listButton.setEnabled(False)
         self.connectionComboBox.setEnabled(True)
         self.baudComboBox.setEnabled(True)
         self.refreshButton.setEnabled(True)
-        self.mcuFilesListView.setEnabled(False)
+        # TODO:
+        # self.remoteFilesTreeView.setEnabled(False)
         self.executeButton.setEnabled(False)
         self.removeButton.setEnabled(False)
         self.actionTerminal.setEnabled(False)
         self.actionUpload.setEnabled(False)
-        self.transferToMcuButton.setEnabled(False)
-        self.transferToPcButton.setEnabled(False)
         # Clear terminal on disconnect
         self._terminal.clear()
         if self._terminal_dialog:
@@ -174,7 +167,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connectionComboBox.setEnabled(False)
         self.baudComboBox.setEnabled(False)
         self.refreshButton.setEnabled(False)
-        self.mcuFilesListView.setEnabled(True)
+        self.remoteFilesTreeView.setEnabled(True)
         self.actionTerminal.setEnabled(True)
         if isinstance(self._connection, SerialConnection):
             self.actionUpload.setEnabled(True)
@@ -185,50 +178,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def navigate_directory(self):
         dialog = QFileDialog()
-        dialog.setDirectory(self._root_dir)
+        dialog.setDirectory(self.localFilesTreeView.root_dir())
         dialog.setFileMode(QFileDialog.Directory)
         dialog.setOption(QFileDialog.ShowDirsOnly)
         dialog.exec()
         path = dialog.selectedFiles()
         if path and path[0]:
-            self._root_dir = path[0]
-            self.localPathEdit.setText(self._root_dir)
-            self.update_file_tree()
-
-    def update_file_tree(self):
-        model = QFileSystemModel()
-        model.setRootPath(self._root_dir)
-        self.localFilesTreeView.setModel(model)
-        local_selection_model = self.localFilesTreeView.selectionModel()
-        local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
-        self.localFilesTreeView.setRootIndex(model.index(self._root_dir))
+            self.localFilesTreeView.set_root_dir(path[0])
 
     def serial_mcu_connection_valid(self):
-        file_list = []
         try:
-            file_list = self._connection.list_files()
+            self._connection.list_files()
             return True
         except OperationError:
-            file_list = None
             return False
 
     def list_mcu_files(self):
-        file_list = []
         try:
-            file_list = self._connection.list_files()
+            self.remoteFilesTreeView.model.refresh()
         except OperationError:
             QMessageBox().critical(self, "Operation failed", "Could not list files.", QMessageBox.Ok)
             return
-
-        self._mcu_files_model = QStringListModel()
-
-        for file in file_list:
-            idx = self._mcu_files_model.rowCount()
-            self._mcu_files_model.insertRow(idx)
-            self._mcu_files_model.setData(self._mcu_files_model.index(idx), file)
-
-        self.mcuFilesListView.setModel(self._mcu_files_model)
-        self.mcu_file_selection_changed()
 
     def execute_mcu_code(self):
         idx = self.mcuFilesListView.currentIndex()
@@ -391,14 +361,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # Return absolute paths
         return [model.filePath(idx) for idx in indices]
-
-    def local_file_selection_changed(self):
-        self.update_compile_button()
-        local_file_paths = self.get_local_file_selection()
-        if len(local_file_paths) == 1:
-            self.remoteNameEdit.setText(local_file_paths[0].rsplit("/", 1)[1])
-        else:
-            self.remoteNameEdit.setText("")
 
     def compile_files(self):
         local_file_paths = self.get_local_file_selection()

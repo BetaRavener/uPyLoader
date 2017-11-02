@@ -1,11 +1,9 @@
 .idea/*
-src/__pycache__/*
-gui/__pycache__/*
 config.txt
 log.txt
 *.json
 build/*
-__pycache__/*
+__pycache__/
 run.bat
 uPyLoader.lnk
 dist/*
