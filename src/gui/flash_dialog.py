@@ -91,7 +91,7 @@ class FlashDialog(QDialog, Ui_FlashDialog):
                  "RXD\t-> TXD\n" \
                  "VCC\t-> 3V3\n" \
                  "GND\t-> GND"
-        QMessageBox.about(self, "Wiring", wiring)
+        QMessageBox.information(self, "Wiring", wiring)
 
     def _update_output(self):
         scrollbar = self.outputEdit.verticalScrollBar()
