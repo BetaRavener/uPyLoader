@@ -6,9 +6,11 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 # Added by buildgui.py script to support pyinstaller
+from src.helpers.pyinstaller_helper import PyInstallerHelper
 
 class Ui_SettingsDialog(object):
     def setupUi(self, SettingsDialog):

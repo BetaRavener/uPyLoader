@@ -3,7 +3,7 @@ import socket
 import struct
 from threading import Thread
 
-from src.connection import Connection
+from src.connection.connection import Connection
 from src.connection.websocket import WebSocket
 from src.helpers import websocket_helper
 from src.logic.file_transfer import FileTransfer

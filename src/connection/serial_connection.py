@@ -4,9 +4,9 @@ import time
 from threading import Thread
 
 import serial
-from src.setting import Settings
+from src.utility.settings import Settings
 
-from src.connection import Connection
+from src.connection.connection import Connection
 from src.helpers.pyinstaller_helper import PyInstallerHelper
 from src.logic.file_transfer import FileTransfer
 from src.utility.exceptions import OperationError

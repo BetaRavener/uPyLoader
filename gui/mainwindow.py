@@ -8,8 +8,6 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from src.helpers.pyinstaller_helper import PyInstallerHelper
-
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -139,7 +137,7 @@ class Ui_MainWindow(object):
         self.label_7.setAlignment(QtCore.Qt.AlignCenter)
         self.label_7.setObjectName("label_7")
         self.verticalLayout_2.addWidget(self.label_7)
-        self.localFilesTreeView = QtWidgets.QTreeView(self.verticalLayoutWidget_2)
+        self.localFilesTreeView = TransferTreeView(self.verticalLayoutWidget_2)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -238,7 +236,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 794, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 794, 26))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -312,4 +310,9 @@ class Ui_MainWindow(object):
         self.actionCode_Editor.setText(_translate("MainWindow", "Code Editor"))
         self.actionFlash.setText(_translate("MainWindow", "Flash firmware"))
         self.actionSettings.setText(_translate("MainWindow", "Settings"))
+
+from src.gui.controls.transfer_tree_view import TransferTreeView
+# Added by buildgui.py script to support pyinstaller
+from src.helpers.pyinstaller_helper import PyInstallerHelper
+
 

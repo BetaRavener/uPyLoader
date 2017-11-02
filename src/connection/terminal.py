@@ -3,7 +3,7 @@ from src.utility.signal_interface import Event
 
 class Terminal:
     def __init__(self):
-        self.add_event = Event(Terminal.add_event_handler)
+        self.add_event = Event()
         self.buffer = ""
         self.history = ""
         self.input_history = []
@@ -28,7 +28,3 @@ class Terminal:
 
     def input(self, idx):
         return self.input_history[idx]
-
-    @staticmethod
-    def add_event_handler(listener_handler):
-        listener_handler()

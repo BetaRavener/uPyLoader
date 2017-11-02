@@ -22,15 +22,22 @@ def next_line_start(content, idx):
         idx += 1
 
 
+def change_controls_path(content):
+    content = content.replace("from transfertreeview import TransferTreeView",
+                              "from src.gui.controls.transfer_tree_view import TransferTreeView")
+    return content
+
+
 def replace_resources(file_path):
     with open(file_path, "r") as f:
         content = f.read()
+        content = change_controls_path(content)
         # Reference PyInstallerHelper in each file (at correct place -- after other imports)
         last_import_idx = content.rfind("import")
         next_line_idx = next_line_start(content, last_import_idx)
         content = "".join([content[:next_line_idx],
-                           "# Added by buildgui.py script to support pyinstaller\n",
-                           "from src.pyinstaller_helper import PyInstallerHelper\n\n",
+                           "\n# Added by buildgui.py script to support pyinstaller\n",
+                           "from src.helpers.pyinstaller_helper import PyInstallerHelper\n\n",
                            content[next_line_idx:]])
 
         # Envelope all icon resources with path resolution
@@ -48,5 +55,6 @@ def main():
         if (not os.path.isfile(file_path)) or file.startswith("__"):
             continue
         replace_resources(file_path)
+
 
 main()

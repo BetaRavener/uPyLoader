@@ -291,7 +291,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QTreeView" name="localFilesTreeView">
+         <widget class="TransferTreeView" name="localFilesTreeView">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -506,7 +506,7 @@
      <x>0</x>
      <y>0</y>
      <width>794</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -566,6 +566,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TransferTreeView</class>
+   <extends>QTreeView</extends>
+   <header>transfertreeview.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

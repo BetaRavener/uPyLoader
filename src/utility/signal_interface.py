@@ -1,6 +1,5 @@
 class Event:
-    def __init__(self, handler):
-        self.handler = handler
+    def __init__(self):
         self.listeners = []
 
     def connect(self, listener):
@@ -11,7 +10,7 @@ class Event:
 
     def signal(self):
         for listener in self.listeners:
-            self.handler(listener.handler)
+            listener.handler()
 
 
 class Listener:
