@@ -106,9 +106,17 @@ class Settings(metaclass=Singleton):
         return True
 
     def save(self):
+        config_file = 'config.json'
         try:
-            with open(os.open('config.json', os.O_WRONLY | os.O_TRUNC), 'w') as file:
-                json.dump(self.serialize(), file)
+            # Check if file exists (supports also hidden files)
+            if os.path.isfile(config_file):
+                # Use write mode that also works with hidden files
+                with open(os.open(config_file, os.O_WRONLY | os.O_TRUNC), 'w') as file:
+                    json.dump(self.serialize(), file)
+            else:
+                # Simply create a new file
+                with open(config_file, "w") as file:
+                    json.dump(self.serialize(), file)
         except IOError:
             pass
 
