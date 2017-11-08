@@ -1,5 +1,6 @@
 from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtWidgets import QAction
+from PyQt5.QtWidgets import QHeaderView
 from PyQt5.QtWidgets import QMenu
 from PyQt5.QtWidgets import QTreeView
 
@@ -45,3 +46,5 @@ class TransferTreeView(QTreeView):
                 self._destination_menu_action.setEnabled(True)
 
             self.context_menu.exec(self.mapToGlobal(point))
+
+

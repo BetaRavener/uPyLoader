@@ -72,9 +72,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.localFilesTreeView.doubleClicked.connect(self.open_local_file)
 
-        # Set the "Name" column to always fit the content
-        self.localFilesTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-
         self.compileButton.clicked.connect(self.compile_files)
         self.update_compile_button()
         self.autoTransferCheckBox.setChecked(Settings().auto_transfer)
