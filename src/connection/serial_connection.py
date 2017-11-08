@@ -91,7 +91,7 @@ class SerialConnection(Connection):
         for i in range(0, int(timeout_s / period)):
             rec = self._serial.read(count - len(data))
             if rec:
-                data.append(rec)
+                data.extend(rec)
                 if len(data) == count:
                     return bytes(data)
             time.sleep(period)
