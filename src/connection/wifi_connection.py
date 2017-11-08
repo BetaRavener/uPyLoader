@@ -109,6 +109,7 @@ class WifiConnection(Connection):
 
         return x
 
+    # TODO: Join with serial implementation? At least the special character handling
     def read_line(self):
         x = self.ws.read_all(0.2)
 

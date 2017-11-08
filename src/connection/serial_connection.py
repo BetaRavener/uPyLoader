@@ -82,15 +82,20 @@ class SerialConnection(Connection):
 
         return x
 
-    def read_timeout(self, count, retries=100):
-        data = b""
-        for i in range(0, retries):
+    def _break_device_read(self):
+        self.send_character("\4")
+
+    def read_timeout(self, count, timeout_s=2.0):
+        period = 0.005
+        data = bytearray()
+        for i in range(0, int(timeout_s / period)):
             rec = self._serial.read(count - len(data))
             if rec:
-                data += rec
+                data.append(rec)
                 if len(data) == count:
-                    return data
-            time.sleep(0.01)
+                    return bytes(data)
+            time.sleep(period)
+
         return None
 
     def read_all(self):
@@ -156,14 +161,14 @@ class SerialConnection(Connection):
         try:
             resp = self.read_to_next_prompt()
             idx = resp.find("#V")
-            if idx < 0 or resp[idx:idx+3] != "#V1":
+            if idx < 0 or resp[idx:idx+3] != "#V2":
                 raise ValueError
             self.read_junk()
             self.send_block("with open(\"__download.py\") as f:\n  f.readline()\n")
             self._serial.flush()
             resp = self.read_to_next_prompt()
             idx = resp.find("#V")
-            if idx < 0 or resp[idx:idx+3] != "#V1":
+            if idx < 0 or resp[idx:idx+3] != "#V2":
                 raise ValueError
         except (TimeoutError, ValueError):
             success = False
@@ -256,6 +261,8 @@ class SerialConnection(Connection):
             self._serial.write(b"".join([b"#", bytes([len(chunk) | 0x80]), chunk]))
             ack = self.read_timeout(2)
             if not ack or ack != b"#1":
+                # Make sure that the device isn't stuck in read
+                self._break_device_read()
                 transfer.mark_error()
                 return False
             idx += len(chunk)
@@ -264,14 +271,15 @@ class SerialConnection(Connection):
         self._serial.write(b"#\0")
         check = self.read_timeout(3)
 
-        if check == b"#1#":
+        if check == b"#0":
             transfer.mark_finished()
             return True
         else:
+            # Make sure that the device isn't stuck in read
+            self._break_device_read()
             transfer.mark_error()
             return False
 
-    # TODO: Edit protocol to send total length so progress can be set correctly
     def recv_file(self, transfer):
         assert isinstance(transfer, FileTransfer)
         result = b""
@@ -296,11 +304,13 @@ class SerialConnection(Connection):
                 self._serial.write(b"#3")
                 break
 
-        self._serial.write(b"#1#" if suc else b"#0#")
+        self._serial.write(b"#0" if suc else b"#4")
         if suc:
             transfer.mark_finished()
             transfer.read_result.binary_data = result
         else:
+            # Make sure that the device isn't stuck in read
+            self._break_device_read()
             transfer.mark_error()
             transfer.read_result.binary_data = None
 
