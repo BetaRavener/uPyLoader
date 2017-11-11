@@ -8,7 +8,7 @@ from src.utility.settings import Settings
 
 from src.connection.connection import Connection
 from src.helpers.pyinstaller_helper import PyInstallerHelper
-from src.logic.file_transfer import FileTransfer
+from src.logic.file_transfer import FileTransfer, FileTransferError
 from src.utility.exceptions import OperationError
 
 
@@ -20,8 +20,7 @@ class SerialConnection(Connection):
         self._baud_rate = baud_rate
 
         try:
-            # These timeouts should be large enough so that any continuous transmission is fully received
-            self._serial = serial.Serial(None, self._baud_rate, timeout=0.2, write_timeout=0.2)
+            self._serial = serial.Serial(None, self._baud_rate, timeout=0.0, write_timeout=0.2)
             self._serial.dtr = False
             self._serial.rts = False
             self._serial.port = port
@@ -83,9 +82,9 @@ class SerialConnection(Connection):
         return x
 
     def _break_device_read(self):
-        self.send_character("\4")
+        self.send_kill()
 
-    def read_timeout(self, count, timeout_s=2.0):
+    def read_with_timeout(self, count, timeout_s=2.0):
         period = 0.005
         data = bytearray()
         for i in range(0, int(timeout_s / period)):
@@ -220,15 +219,17 @@ class SerialConnection(Connection):
             with open(SerialConnection._transfer_file_path("upload.py")) as f:
                 data = f.read()
                 data = data.replace("\"file_name.py\"", "file_name")
-                res = self.send_file(data.encode('utf-8'), transfer)
+                self.send_file(data.encode('utf-8'), transfer)
+            transfer.mark_finished()
 
             self.run_file("__upload.py", "file_name=\"{}\"".format("__download.py"))
             self.read_all()
             with open(SerialConnection._transfer_file_path("download.py")) as f:
                 data = f.read()
                 data = data.replace("\"file_name.py\"", "file_name")
-                res = self.send_file(data.encode('utf-8'), transfer)
-        except FileNotFoundError:
+                self.send_file(data.encode('utf-8'), transfer)
+            transfer.mark_finished()
+        except (FileNotFoundError, FileTransferError):
             transfer.mark_error()
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
@@ -259,26 +260,22 @@ class SerialConnection(Connection):
                 chunk = chunk[0:-1]
             # Set the most significant bit of length to also prevent REPL intercepting the byte
             self._serial.write(b"".join([b"#", bytes([len(chunk) | 0x80]), chunk]))
-            ack = self.read_timeout(2)
+            ack = self.read_with_timeout(2)
             if not ack or ack != b"#1":
                 # Make sure that the device isn't stuck in read
                 self._break_device_read()
-                transfer.mark_error()
-                return False
+                raise FileTransferError()
             idx += len(chunk)
             transfer.progress = idx / total_len
-        # Mark end
-        self._serial.write(b"#\0")
-        check = self.read_timeout(3)
 
-        if check == b"#0":
-            transfer.mark_finished()
-            return True
-        else:
+        # Mark end and check for success
+        self._serial.write(b"#\0")
+        check = self.read_with_timeout(2)
+
+        if check != b"#0":
             # Make sure that the device isn't stuck in read
             self._break_device_read()
-            transfer.mark_error()
-            return False
+            raise FileTransferError()
 
     def recv_file(self, transfer):
         assert isinstance(transfer, FileTransfer)
@@ -287,7 +284,7 @@ class SerialConnection(Connection):
         # Initiate transfer
         self._serial.write(b"###")
         while True:
-            data = self.read_timeout(2)
+            data = self.read_with_timeout(2)
             if not data or data[0] != ord("#"):
                 self._serial.write(b"#2")
                 break
@@ -295,7 +292,7 @@ class SerialConnection(Connection):
             if count == 0:
                 suc = True
                 break
-            data = self.read_timeout(count)
+            data = self.read_with_timeout(count)
             if data:
                 result += data
                 # Send ACK
@@ -304,7 +301,6 @@ class SerialConnection(Connection):
                 self._serial.write(b"#3")
                 break
 
-        self._serial.write(b"#0" if suc else b"#4")
         if suc:
             transfer.mark_finished()
             transfer.read_result.binary_data = result

@@ -3,7 +3,7 @@ import sys
 import time
 
 
-def _read_timeout(cnt, timeout_ms=1000):
+def _read_timeout(cnt, timeout_ms=2000):
     s_time = time.ticks_ms()
     data = sys.stdin.buffer.read(cnt)
     if time.ticks_diff(time.ticks_ms(), s_time) > timeout_ms or len(data) != cnt:
@@ -12,7 +12,7 @@ def _read_timeout(cnt, timeout_ms=1000):
 
 
 def _download():
-    if _read_timeout(3) != "###":
+    if _read_timeout(3) != b"###":
         return
     with open("file_name.py", "rb") as f:
         while True:
