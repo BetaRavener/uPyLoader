@@ -19,6 +19,7 @@ from src.gui.terminal_dialog import TerminalDialog
 from src.gui.wifi_preset_dialog import WiFiPresetDialog
 from src.helpers.ip_helper import IpHelper
 from src.logic.file_transfer import FileTransfer
+from src.logic.remote_file_system_model import RemoteFileSystemModel
 from src.utility.exceptions import PasswordException, NewPasswordException, OperationError
 from src.utility.settings import Settings
 
@@ -62,6 +63,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.presetButton.clicked.connect(self.show_presets)
         self.connectButton.clicked.connect(self.connect_pressed)
 
+        self.localFilesTreeView.selectionModel().selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.set_root_dir(Settings().root_dir)
 
         self.listButton.clicked.connect(self.list_mcu_files)
@@ -131,20 +133,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusLabel.setText(status)
         QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
 
-    def update_compile_button(self):
-        self.compileButton.setEnabled(bool(Settings().mpy_cross_path) and
-                                      len(self.get_local_file_selection()) > 0)
-
     def disconnected(self):
         self.connectButton.setText("Connect")
         self.set_status("Disconnected")
-        # TODO:
-        # self.listButton.setEnabled(False)
+        self.listButton.setEnabled(False)
         self.connectionComboBox.setEnabled(True)
         self.baudComboBox.setEnabled(True)
         self.refreshButton.setEnabled(True)
-        # TODO:
-        # self.remoteFilesTreeView.setEnabled(False)
+        self.remoteFilesTreeView.setEnabled(False)
         self.executeButton.setEnabled(False)
         self.removeButton.setEnabled(False)
         self.actionTerminal.setEnabled(False)
@@ -168,7 +164,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionTerminal.setEnabled(True)
         if isinstance(self._connection, SerialConnection):
             self.actionUpload.setEnabled(True)
-        self.transferToMcuButton.setEnabled(True)
         if self._code_editor:
             self._code_editor.connected(self._connection)
         self.list_mcu_files()
@@ -268,7 +263,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.refresh_ports()
 
         if self._connection is not None and self._connection.is_connected():
-            self.connected()
             if isinstance(self._connection, SerialConnection):
                 if Settings().use_transfer_scripts and not self._connection.check_transfer_scripts_version():
                     QMessageBox.warning(self,
@@ -276,6 +270,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                         "Transfer scripts for UART are either"
                                         " missing or have wrong version.\nPlease use 'File->Init transfer files' to"
                                         " fix this issue.")
+            self.connected()
         else:
             self._connection = None
             self.set_status("Error")
@@ -286,6 +281,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._connection = None
 
         self.disconnected()
+
+    def update_compile_button(self):
+        self.compileButton.setEnabled(bool(Settings().mpy_cross_path) and
+                                      len(self.get_local_file_selection()) > 0)
+
+    def local_file_selection_changed(self):
+        self.update_compile_button()
 
     def show_presets(self):
         dialog = WiFiPresetDialog()
@@ -304,10 +306,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.end_connection()
         else:
             self.start_connection()
-
-    def run_file(self):
-        content = self.codeEdit.toPlainText()
-        self._connection.send_block(content)
 
     def open_local_file(self, idx):
         assert isinstance(idx, QModelIndex)
@@ -432,18 +430,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def read_mcu_file(self, idx):
         assert isinstance(idx, QModelIndex)
-        model = self.mcuFilesListView.model()
-        assert isinstance(model, QStringListModel)
-        file_name = model.data(idx, Qt.EditRole)
-        if not file_name.endswith(".py"):
+        model = self.remoteFilesTreeView.model()
+        assert isinstance(model, RemoteFileSystemModel)
+        file_path = model.data(idx, Qt.UserRole).path
+        if not file_path.endswith(".py"):
             QMessageBox.information(self, "Unknown file", "Files without .py ending won't open"
                                                           " in editor, but can still be transferred.")
             return
 
         progress_dlg = FileTransferDialog(FileTransferDialog.DOWNLOAD)
-        progress_dlg.finished.connect(lambda: self.finished_read_mcu_file(file_name, progress_dlg.transfer))
+        progress_dlg.finished.connect(lambda: self.finished_read_mcu_file(file_path, progress_dlg.transfer))
         progress_dlg.show()
-        self._connection.read_file(file_name, progress_dlg.transfer)
+        self._connection.read_file(file_path, progress_dlg.transfer)
 
     def upload_transfer_scripts(self):
         progress_dlg = FileTransferDialog(FileTransferDialog.UPLOAD)

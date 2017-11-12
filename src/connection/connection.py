@@ -1,4 +1,5 @@
 import time
+import re
 from threading import Lock, Thread
 
 from src.utility.exceptions import OperationError
@@ -119,6 +120,27 @@ class Connection:
         self._auto_reader_lock.release()
         if success and ret:
             return re.findall("'([^']+)'", ret)
+        else:
+            raise OperationError()
+
+    def list_tree(self):
+        success = True
+        self._auto_reader_lock.acquire()
+        self._auto_read_enabled = False
+        self.send_kill()
+        self.read_junk()
+        self.run_file("__list.py")
+        ret = ""
+        try:
+            ret = self.read_to_next_prompt()
+        except TimeoutError:
+            success = False
+        self._auto_read_enabled = True
+        self._auto_reader_lock.release()
+        s_idx = ret.find("###")
+        if success and ret and s_idx >= 0:
+            # Leave out starting and prompt line, then remove whitespace characters
+            return [x.strip() for x in ret[s_idx:].split("\n")[1:-1]]
         else:
             raise OperationError()
 

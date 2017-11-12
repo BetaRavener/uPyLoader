@@ -17,3 +17,4 @@ class LocalTreeView(TransferTreeView):
         model = self.model()
         model.setRootPath(path)
         self.setRootIndex(model.index(path))
+        self._set_transfer_directory(path)
