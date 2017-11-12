@@ -280,7 +280,7 @@ class SerialConnection(Connection):
     def recv_file(self, transfer):
         assert isinstance(transfer, FileTransfer)
         result = b""
-        suc = False
+
         # Initiate transfer
         self._serial.write(b"###")
         while True:
@@ -290,8 +290,8 @@ class SerialConnection(Connection):
                 break
             count = data[1]
             if count == 0:
-                suc = True
-                break
+                transfer.read_result.binary_data = result
+                return
             data = self.read_with_timeout(count)
             if data:
                 result += data
@@ -301,14 +301,10 @@ class SerialConnection(Connection):
                 self._serial.write(b"#3")
                 break
 
-        if suc:
-            transfer.mark_finished()
-            transfer.read_result.binary_data = result
-        else:
-            # Make sure that the device isn't stuck in read
-            self._break_device_read()
-            transfer.mark_error()
-            transfer.read_result.binary_data = None
+        # Make sure that the device isn't stuck in read
+        self._break_device_read()
+        transfer.read_result.binary_data = None
+        raise FileTransferError()
 
     def _write_file_job(self, file_name, text, transfer):
         if isinstance(text, str):
@@ -316,35 +312,39 @@ class SerialConnection(Connection):
 
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
-        transfer_ready = True
         if Settings().use_transfer_scripts:
             self.run_file("__upload.py", "file_name=\"{}\"".format(file_name))
         else:
             try:
                 self.send_upload_file(file_name)
             except FileNotFoundError:
-                transfer_ready = False
                 transfer.mark_error()
-        if transfer_ready:
+        if not transfer.error:
             self.read_junk()
-            self.send_file(text, transfer)
+            try:
+                self.send_file(text, transfer)
+                transfer.mark_finished()
+            except FileTransferError:
+                transfer.mark_error()
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
     def _read_file_job(self, file_name, transfer):
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
-        transfer_ready = True
         if Settings().use_transfer_scripts:
             self.run_file("__download.py", "file_name=\"{}\"".format(file_name))
         else:
             try:
                 self.send_download_file(file_name)
             except FileNotFoundError:
-                transfer_ready = False
                 transfer.mark_error()
-        if transfer_ready:
+        if not transfer.error:
             self.read_junk()
-            self.recv_file(transfer)
+            try:
+                self.recv_file(transfer)
+                transfer.mark_finished()
+            except FileTransferError:
+                transfer.mark_error()
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
