@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 import time
@@ -20,7 +21,7 @@ class SerialConnection(Connection):
         self._baud_rate = baud_rate
 
         try:
-            self._serial = serial.Serial(None, self._baud_rate, timeout=0.0, write_timeout=0.2)
+            self._serial = serial.Serial(None, self._baud_rate, timeout=0, write_timeout=0.2)
             self._serial.dtr = False
             self._serial.rts = False
             self._serial.port = port
@@ -82,6 +83,7 @@ class SerialConnection(Connection):
         return x
 
     def _break_device_read(self):
+        time.sleep(1)
         self.send_kill()
 
     def read_with_timeout(self, count, timeout_s=2.0):
@@ -241,25 +243,16 @@ class SerialConnection(Connection):
 
     def send_file(self, data, transfer):
         assert isinstance(transfer, FileTransfer)
-        # Encode data to prevent special REPL sequences
-        encoded = bytearray()
-        for x in data:
-            if x < 10:
-                encoded.append(0x00)
-                encoded.append(x | 0xF0)
-            else:
-                encoded.append(x)
-        # Split encoded data into smaller chunks
+        # Split data into smaller chunks
         idx = 0
-        n = 64
-        total_len = len(encoded)
+        # Using chunks of 48 bytes, encoded chunk should be at most 64 bytes
+        n = 48
+        total_len = len(data)
         while idx < total_len:
-            chunk = encoded[idx:idx+n]
-            # Shorten chunk to prevent brake at special sequence
-            if chunk[len(chunk)-1] == 0x0:
-                chunk = chunk[0:-1]
-            # Set the most significant bit of length to also prevent REPL intercepting the byte
-            self._serial.write(b"".join([b"#", bytes([len(chunk) | 0x80]), chunk]))
+            chunk = data[idx:idx + n]
+            # Encode data to prevent special REPL sequences
+            en_chunk = base64.b64encode(chunk)
+            self._serial.write(b"".join([b"#", str(len(en_chunk)).zfill(2).encode("ascii"), en_chunk]))
             ack = self.read_with_timeout(2)
             if not ack or ack != b"#1":
                 # Make sure that the device isn't stuck in read
@@ -269,7 +262,7 @@ class SerialConnection(Connection):
             transfer.progress = idx / total_len
 
         # Mark end and check for success
-        self._serial.write(b"#\0")
+        self._serial.write(b"#00")
         check = self.read_with_timeout(2)
 
         if check != b"#0":
@@ -284,17 +277,17 @@ class SerialConnection(Connection):
         # Initiate transfer
         self._serial.write(b"###")
         while True:
-            data = self.read_with_timeout(2)
+            data = self.read_with_timeout(3)
             if not data or data[0] != ord("#"):
                 self._serial.write(b"#2")
                 break
-            count = data[1]
+            count = int(data[1:3])
             if count == 0:
                 transfer.read_result.binary_data = result
                 return
             data = self.read_with_timeout(count)
             if data:
-                result += data
+                result += base64.b64decode(data)
                 # Send ACK
                 self._serial.write(b"#1")
             else:
