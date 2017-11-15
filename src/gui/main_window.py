@@ -111,15 +111,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connectionComboBox.clear()
 
         if self._connection_scanner.port_list:
-            for port in self._connection_scanner.port_list:
+            selected_port_idx = 0
+            pref_port = Settings().preferred_port.upper()
+            for i, port in enumerate(self._connection_scanner.port_list):
                 self.connectionComboBox.addItem(port)
-            pref_port = str(Settings().preferred_port)
-            pref_port = pref_port.upper()
-            pref_port = pref_port.join(pref_port.split())
-            if self.connectionComboBox.findText(pref_port) >= 0:
-                self.connectionComboBox.setCurrentIndex(self.connectionComboBox.findText(pref_port))
-            else:
-                self.connectionComboBox.setCurrentIndex(0)
+                if port.upper() == pref_port:
+                    selected_port_idx = i
+
+            self.connectionComboBox.setCurrentIndex(selected_port_idx)
             self.connectButton.setEnabled(True)
         else:
             self.connectButton.setEnabled(False)
