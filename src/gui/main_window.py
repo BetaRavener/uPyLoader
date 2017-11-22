@@ -112,10 +112,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if self._connection_scanner.port_list:
             selected_port_idx = 0
-            pref_port = Settings().preferred_port.upper()
+            pref_port = Settings().preferred_port
             for i, port in enumerate(self._connection_scanner.port_list):
                 self.connectionComboBox.addItem(port)
-                if pref_port and port.upper() == pref_port:
+                if pref_port and port.upper() == pref_port.upper():
                     selected_port_idx = i
 
             self.connectionComboBox.setCurrentIndex(selected_port_idx)
