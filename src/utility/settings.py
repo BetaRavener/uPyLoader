@@ -107,7 +107,7 @@ class Settings(metaclass=Singleton):
         return True
 
     def save(self):
-        config_file = 'config.json'
+        config_file = RelativePathResolver().absolute("config.json")
         try:
             # Check if file exists (supports also hidden files)
             if os.path.isfile(config_file):
