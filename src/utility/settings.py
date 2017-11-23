@@ -6,6 +6,7 @@ from PyQt5.QtCore import QDir
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 
+from src.utility.relative_path_resolver import RelativePathResolver
 from src.utility.singleton import Singleton
 
 
@@ -63,7 +64,7 @@ class Settings(metaclass=Singleton):
 
     def load(self):
         try:
-            with open("config.json") as file:
+            with open(RelativePathResolver().absolute("config.json")) as file:
                 for key, val in self.deserialize(json.load(file)).items():
                     self.__dict__[key] = val
         except (FileNotFoundError, ValueError):
@@ -82,7 +83,7 @@ class Settings(metaclass=Singleton):
 
     def load_old(self):
         try:
-            with open("config.txt") as file:
+            with open(RelativePathResolver().absolute("config.txt")) as file:
                 for line in file:
                     if line.startswith("root_dir"):
                         self.root_dir = line.strip().split("=", 1)[1]
