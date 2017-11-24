@@ -5,6 +5,8 @@ from PyQt5.QtCore import QByteArray
 from PyQt5.QtCore import QDir
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
+from pathlib import Path
+from os import chdir
 
 from src.utility.singleton import Singleton
 
@@ -13,6 +15,7 @@ class Settings(metaclass=Singleton):
     newest_version = 101
 
     def __init__(self):
+        chdir(str(Path.home()))
         self.version = 100  # Assume oldest config
         self.root_dir = QDir().currentPath()
         self.send_sleep = 0.1
