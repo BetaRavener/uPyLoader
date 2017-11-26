@@ -33,6 +33,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         geometry = Settings().retrieve_geometry("main")
         if geometry:
             self.restoreGeometry(geometry)
+        geometry = Settings().retrieve_geometry("localPanel")
+        if geometry:
+            self.localFilesTreeView.header().restoreState(geometry)
 
         self._connection_scanner = ConnectionScanner()
         self._connection = None
@@ -79,9 +82,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.doubleClicked.connect(self.open_local_file)
 
-        # Set the "Name" column to always fit the content
-        self.localFilesTreeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-
         self.compileButton.clicked.connect(self.compile_files)
         self.update_compile_button()
         self.autoTransferCheckBox.setChecked(Settings().auto_transfer)
@@ -95,6 +95,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Settings().root_dir = self._root_dir
         Settings().auto_transfer = self.autoTransferCheckBox.isChecked()
         Settings().update_geometry("main", self.saveGeometry())
+        Settings().update_geometry("localPanel", self.localFilesTreeView.header().saveState())
         Settings().save()
         if self._connection is not None and self._connection.is_connected():
             self.end_connection()
