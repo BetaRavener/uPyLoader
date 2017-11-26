@@ -10,6 +10,10 @@ class TransferTreeView(QTreeView):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.setRootIsDecorated(False)
+        self.setExpandsOnDoubleClick(False)
+        self.doubleClicked.connect(self._double_clicked_handler)
+
         self._current_dir_path = ""
 
         self._context_menu = QMenu(self)
@@ -19,6 +23,16 @@ class TransferTreeView(QTreeView):
         self._context_menu.addSeparator()
         self._destination_menu_action = self._add_menu_action(
             "Set as destination", self._set_transfer_directory_handler)
+
+    def _double_clicked_handler(self, idx):
+        model = self.model()
+        if model.isDir(idx):
+            self.set_current_dir(self.model().filePath(idx))
+
+    def set_current_dir(self, path):
+        self._current_dir_path = path
+        idx = self.model().index(path)
+        self.setRootIndex(idx)
 
     def _add_menu_action(self, title, handler):
         action = QAction(title, self._context_menu)
