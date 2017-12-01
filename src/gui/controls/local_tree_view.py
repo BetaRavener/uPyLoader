@@ -7,13 +7,11 @@ class LocalTreeView(TransferTreeView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setModel(QFileSystemModel())
-        self._root_dir = ""
 
     def root_dir(self):
-        return self._root_dir
+        return self.model().rootPath()
 
     def set_root_dir(self, path):
-        self._root_dir = path
         self.model().setRootPath(path)
         self.set_current_dir(path)
         #model = self.model()

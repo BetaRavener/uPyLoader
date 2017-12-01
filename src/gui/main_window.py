@@ -64,20 +64,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.presetButton.clicked.connect(self.show_presets)
         self.connectButton.clicked.connect(self.connect_pressed)
 
+        # Local panel
+        self.localParrentFolderButton.clicked.connect(self.localFilesTreeView.go_up_dir)
+        self.localProjectFolderButton.clicked.connect(self.localFilesTreeView.go_root_dir)
         self.localFilesTreeView.selectionModel().selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.set_root_dir(Settings().root_dir)
-
-        self.listButton.clicked.connect(self.list_mcu_files)
-        #TODO:
-        self.remoteFilesTreeView.doubleClicked.connect(self.read_mcu_file)
-        self.executeButton.clicked.connect(self.execute_mcu_code)
-        self.removeButton.clicked.connect(self.remove_file)
-
         self.localFilesTreeView.doubleClicked.connect(self.open_local_file)
-
         self.compileButton.clicked.connect(self.compile_files)
         self.update_compile_button()
         self.autoTransferCheckBox.setChecked(Settings().auto_transfer)
+
+        # Remote panel
+        self.remoteParentFolderButton.clicked.connect(self.remoteFilesTreeView.go_up_dir)
+        self.remoteRootFolderButton.clicked.connect(self.remoteFilesTreeView.go_root_dir)
+        self.listButton.clicked.connect(self.list_mcu_files)
+        self.remoteFilesTreeView.doubleClicked.connect(self.read_mcu_file)
+        self.executeButton.clicked.connect(self.execute_mcu_code)
+        self.removeButton.clicked.connect(self.remove_file)
 
         self.disconnected()
 
@@ -137,6 +140,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def disconnected(self):
         self.connectButton.setText("Connect")
         self.set_status("Disconnected")
+        self.remoteParentFolderButton.setEnabled(False)
+        self.remoteRootFolderButton.setEnabled(False)
         self.listButton.setEnabled(False)
         self.connectionComboBox.setEnabled(True)
         self.baudComboBox.setEnabled(True)
@@ -157,6 +162,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def connected(self):
         self.connectButton.setText("Disconnect")
         self.set_status("Connected")
+        self.remoteParentFolderButton.setEnabled(True)
+        self.remoteRootFolderButton.setEnabled(True)
         self.listButton.setEnabled(True)
         self.connectionComboBox.setEnabled(False)
         self.baudComboBox.setEnabled(False)
