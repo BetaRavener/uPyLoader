@@ -5,9 +5,10 @@ from ubinascii import a2b_base64
 
 
 def _read_timeout(cnt, timeout_ms=2000):
-    s_time = time.ticks_ms()
+    time_support = "ticks_ms" in dir(time)
+    s_time = time.ticks_ms() if time_support else 0
     data = sys.stdin.read(cnt)
-    if time.ticks_diff(time.ticks_ms(), s_time) > timeout_ms or len(data) != cnt:
+    if len(data) != cnt or (time_support and time.ticks_diff(time.ticks_ms(), s_time) > timeout_ms):
         return None
     return data
 
