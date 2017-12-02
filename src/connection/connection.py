@@ -66,6 +66,11 @@ class Connection:
         self.send_line("    exec(f.read(), globals())", "\r")
         self.send_end_paste()
 
+    def run_code(self, code):
+        self.send_start_paste()
+        self.send_line("exec(\"{}\", globals())".format(code), "\r")
+        self.send_end_paste()
+
     def remove_file(self, file_name):
         success = True
         # Prevent echo
@@ -100,10 +105,6 @@ class Connection:
             self._auto_reader_lock.release()
             time.sleep(0.1 if not x else 0)
 
-    @staticmethod
-    def _get_remote_file_name(local_file_path):
-        return local_file_path.rsplit("/", 1)[1]
-
     def list_files(self):
         success = True
         self._auto_reader_lock.acquire()
@@ -123,13 +124,22 @@ class Connection:
         else:
             raise OperationError()
 
+    def _initialize_fs(self):
+        self._auto_reader_lock.acquire()
+        self._auto_read_enabled = False
+        self.send_kill()
+        self.read_junk()
+        self.run_file("__list.py")
+        self._auto_read_enabled = True
+        self._auto_reader_lock.release()
+
     def list_tree(self):
         success = True
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         self.send_kill()
         self.read_junk()
-        self.run_file("__list.py")
+        self.run_code("_fs_list()")
         ret = ""
         try:
             ret = self.read_to_next_prompt()
@@ -144,7 +154,7 @@ class Connection:
         else:
             raise OperationError()
 
-    def _write_file_job(self, remote_name, content, transfer):
+    def _write_file_job(self, remote_path, content, transfer):
         raise NotImplementedError()
 
     def write_file(self, file_name, text, transfer):
@@ -153,12 +163,11 @@ class Connection:
         job_thread.setDaemon(True)
         job_thread.start()
 
-    def _write_files_job(self, local_file_paths, transfer):
-        for local_path in local_file_paths:
-            remote_name = self._get_remote_file_name(local_path)
+    def _write_files_job(self, local_remote_paths, transfer):
+        for local_path, remote_path in local_remote_paths:
             with open(local_path, "rb") as f:
                 content = f.read()
-                self._write_file_job(remote_name, content, transfer)
+                self._write_file_job(remote_path, content, transfer)
                 if transfer.cancel_scheduled:
                     transfer.confirm_cancel()
                 if transfer.error or transfer.cancelled:

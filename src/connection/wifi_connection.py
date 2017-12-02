@@ -30,6 +30,7 @@ class WifiConnection(Connection):
             self._clear()
             raise PasswordException()
 
+        self._initialize_fs()
         self._reader_thread = Thread(target=self._reader_thread_routine)
         self._reader_thread.start()
 

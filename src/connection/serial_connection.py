@@ -40,6 +40,7 @@ class SerialConnection(Connection):
         except Exception as e:
             return
 
+        self._initialize_fs()
         self._reader_thread = Thread(target=self._reader_thread_routine)
         self._reader_thread.start()
 

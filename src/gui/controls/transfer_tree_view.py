@@ -1,6 +1,6 @@
 import os
 
-from PyQt5.QtCore import QModelIndex, Qt
+from PyQt5.QtCore import QModelIndex, Qt, pyqtSignal
 from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtWidgets import QAction
 from PyQt5.QtWidgets import QHeaderView
@@ -9,6 +9,8 @@ from PyQt5.QtWidgets import QTreeView
 
 
 class TransferTreeView(QTreeView):
+    transfer_signal = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -47,6 +49,9 @@ class TransferTreeView(QTreeView):
         idx = self.model().index(path)
         self.setRootIndex(idx)
 
+    def current_dir(self):
+        return self._current_dir_path
+
     def _add_menu_action(self, title, handler):
         action = QAction(title, self._context_menu)
         action.triggered.connect(handler)
@@ -54,7 +59,7 @@ class TransferTreeView(QTreeView):
         return action
 
     def _transfer_handler(self):
-        pass
+        self.transfer_signal.emit()
 
     def _transfer_changed_handler(self):
         pass
@@ -63,23 +68,9 @@ class TransferTreeView(QTreeView):
         dir_row = self.selectionModel().selectedRows()[0]
         self._set_transfer_directory(self.model().filePath(dir_row))
 
-    def _find_item_idx_for_path(self, path):
-        model = self.model()
-        items_path = [QModelIndex()]
-        while items_path:
-            for r in range(model.rowCount(items_path[0])):
-                idx = model.index(r, 0, items_path[0])
-                if model.filePath(idx) == path:
-                    return idx
-                if model.hasChildren(idx):
-                    # noinspection PyTypeChecker
-                    items_path.append(idx)
-            items_path.pop(0)
-        return None
-
     def _set_transfer_directory(self, path):
         self._current_dir_path = path
-        idx = self._find_item_idx_for_path(path)
+        idx = self.model().index(path)
         self.model().setData(idx, Qt.UserRole)
 
     def contextMenuEvent(self, *args, **kwargs):

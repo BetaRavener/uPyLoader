@@ -70,6 +70,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.localFilesTreeView.selectionModel().selectionChanged.connect(self.local_file_selection_changed)
         self.localFilesTreeView.set_root_dir(Settings().root_dir)
         self.localFilesTreeView.doubleClicked.connect(self.open_local_file)
+        self.localFilesTreeView.transfer_signal.connect(self.transfer_to_mcu)
         self.compileButton.clicked.connect(self.compile_files)
         self.update_compile_button()
         self.autoTransferCheckBox.setChecked(Settings().auto_transfer)
@@ -77,8 +78,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Remote panel
         self.remoteParentFolderButton.clicked.connect(self.remoteFilesTreeView.go_up_dir)
         self.remoteRootFolderButton.clicked.connect(self.remoteFilesTreeView.go_root_dir)
-        self.listButton.clicked.connect(self.list_mcu_files)
+        self.listButton.clicked.connect(self.refresh_mcu_files)
         self.remoteFilesTreeView.doubleClicked.connect(self.read_mcu_file)
+        self.remoteFilesTreeView.transfer_signal.connect(self.transfer_to_pc)
         self.executeButton.clicked.connect(self.execute_mcu_code)
         self.removeButton.clicked.connect(self.remove_file)
 
@@ -174,7 +176,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.actionUpload.setEnabled(True)
         if self._code_editor:
             self._code_editor.connected(self._connection)
-        self.list_mcu_files()
+        self.refresh_mcu_files()
 
     def navigate_directory(self):
         dialog = QFileDialog()
@@ -193,12 +195,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         except OperationError:
             return False
 
-    def list_mcu_files(self):
-        try:
-            self.remoteFilesTreeView.model().refresh(self._connection)
-        except OperationError:
-            QMessageBox().critical(self, "Operation failed", "Could not list files.", QMessageBox.Ok)
-            return
+    def refresh_mcu_files(self):
+        self.remoteFilesTreeView.refresh(self._connection)
 
     def execute_mcu_code(self):
         idx = self.mcuFilesListView.currentIndex()
@@ -219,7 +217,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         except OperationError:
             QMessageBox().critical(self, "Operation failed", "Could not remove the file.", QMessageBox.Ok)
             return
-        self.list_mcu_files()
+        self.refresh_mcu_files()
 
     def ask_for_password(self, title, label="Password"):
         if self._preset_password is not None:
@@ -440,6 +438,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         assert isinstance(idx, QModelIndex)
         model = self.remoteFilesTreeView.model()
         assert isinstance(model, RemoteFileSystemModel)
+
+        # Ignore directories
+        if model.data(idx, Qt.UserRole).is_dir():
+            return
+
         file_path = model.data(idx, Qt.UserRole).path
         if not file_path.endswith(".py"):
             QMessageBox.information(self, "Unknown file", "Files without .py ending won't open"
@@ -453,30 +456,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def upload_transfer_scripts(self):
         progress_dlg = FileTransferDialog(FileTransferDialog.UPLOAD)
-        progress_dlg.finished.connect(self.list_mcu_files)
+        progress_dlg.finished.connect(self.refresh_mcu_files)
         progress_dlg.show()
         self._connection.upload_transfer_files(progress_dlg.transfer)
 
     def transfer_to_mcu(self):
         local_file_paths = self.get_local_file_selection()
+        local_remote_paths = []
+        for p in local_file_paths:
+            file_name = p.rsplit("/", 1)[1]
+            local_remote_paths.append((p, "{}{}".format(self.remoteFilesTreeView.current_dir(), file_name)))
 
         progress_dlg = FileTransferDialog(FileTransferDialog.UPLOAD)
-        progress_dlg.finished.connect(self.list_mcu_files)
+        progress_dlg.finished.connect(self.refresh_mcu_files)
         progress_dlg.show()
-
-        # Handle single file transfer
-        if len(local_file_paths) == 1:
-            local_path = local_file_paths[0]
-            remote_path = self.remoteNameEdit.text()
-            with open(local_path, "rb") as f:
-                content = f.read()
-            self._connection.write_file(remote_path, content, progress_dlg.transfer)
-            return
 
         # Batch file transfer
         progress_dlg.enable_cancel()
         progress_dlg.transfer.set_file_count(len(local_file_paths))
-        self._connection.write_files(local_file_paths, progress_dlg.transfer)
+        self._connection.write_files(local_remote_paths, progress_dlg.transfer)
 
     def finished_transfer_to_pc(self, file_path, transfer):
         if not transfer.read_result.binary_data:
@@ -489,12 +487,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             QMessageBox.critical(self, "Save operation failed", "Couldn't save the file. Check path and permissions.")
 
     def transfer_to_pc(self):
-        idx = self.mcuFilesListView.currentIndex()
+        idx = self.remoteFilesTreeView.currentIndex()
         assert isinstance(idx, QModelIndex)
-        model = self.mcuFilesListView.model()
-        assert isinstance(model, QStringListModel)
+        model = self.remoteFilesTreeView.model()
+        assert isinstance(model, RemoteFileSystemModel)
         remote_path = model.data(idx, Qt.EditRole)
-        local_path = self.localPathEdit.text() + "/" + remote_path
+        local_path = os.path.join(self.localFilesTreeView.current_dir(), remote_path)
 
         progress_dlg = FileTransferDialog(FileTransferDialog.DOWNLOAD)
         progress_dlg.finished.connect(lambda: self.finished_transfer_to_pc(local_path, progress_dlg.transfer))
@@ -528,7 +526,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         self._code_editor = CodeEditDialog(self, self._connection)
-        self._code_editor.mcu_file_saved.connect(self.list_mcu_files)
+        self._code_editor.mcu_file_saved.connect(self.refresh_mcu_files)
         self._code_editor.finished.connect(self.close_code_editor)
         self._code_editor.show()
 

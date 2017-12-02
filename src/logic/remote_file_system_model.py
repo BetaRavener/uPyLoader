@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QModelIndex
 from PyQt5.QtGui import QStandardItem
 from PyQt5.QtGui import QStandardItemModel
 
@@ -12,15 +12,39 @@ class RemoteFileSystemModel(QStandardItemModel):
         def __init__(self, path):
             self.path = path
 
+        def is_dir(self):
+            return self.path.endswith("/")
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setHorizontalHeaderLabels(["Name"])
 
     def isDir(self, index):
-        return self.filePath(index).endswith("/")
+        return self.data(index, Qt.UserRole).is_dir()
 
     def filePath(self, index):
         return self.data(index, Qt.UserRole).path
+
+    def index(self, row_or_path, column: int = 0, parent: QModelIndex = ...):
+        # For integer row, use existing implementation
+        if isinstance(row_or_path, int):
+            return super().index(row_or_path, column, parent)
+        if not isinstance(row_or_path, str):
+            raise ValueError("First argument not integer nor string")
+
+        # Find path in model
+        path = row_or_path
+        items_path = [QModelIndex()]
+        while items_path:
+            for r in range(self.rowCount(items_path[0])):
+                idx = self.index(r, 0, items_path[0])
+                if self.filePath(idx) == path:
+                    return idx
+                if self.hasChildren(idx):
+                    # noinspection PyTypeChecker
+                    items_path.append(idx)
+            items_path.pop(0)
+        return QModelIndex()
 
     @staticmethod
     def _assign_icon(item, is_dir):
@@ -35,6 +59,7 @@ class RemoteFileSystemModel(QStandardItemModel):
         item = QStandardItem(name)
         item.setIcon(self._assign_icon(name, is_dir))
         item.setData(self._Data(abs_path), Qt.UserRole)
+        item.setEditable(False)
         parent.appendRow(item)
         return item
 
