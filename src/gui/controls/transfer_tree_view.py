@@ -39,7 +39,8 @@ class TransferTreeView(QTreeView):
 
     def go_up_dir(self):
         if not os.path.samefile(self._current_dir_path, self.root_dir()):
-            self.set_current_dir(os.path.abspath(os.path.join(self._current_dir_path, os.pardir)))
+            idx = self._current_dir_path[:-1].rfind("/")
+            self.set_current_dir(self._current_dir_path[:idx+1])
 
     def go_root_dir(self):
         self.set_current_dir(self.root_dir())
