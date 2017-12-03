@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 import time
@@ -8,7 +9,7 @@ from src.utility.settings import Settings
 
 from src.connection.connection import Connection
 from src.helpers.pyinstaller_helper import PyInstallerHelper
-from src.logic.file_transfer import FileTransfer
+from src.logic.file_transfer import FileTransfer, FileTransferError
 from src.utility.exceptions import OperationError
 
 
@@ -20,8 +21,7 @@ class SerialConnection(Connection):
         self._baud_rate = baud_rate
 
         try:
-            # These timeouts should be large enough so that any continuous transmission is fully received
-            self._serial = serial.Serial(None, self._baud_rate, timeout=0.2, write_timeout=0.2)
+            self._serial = serial.Serial(None, self._baud_rate, timeout=0, write_timeout=0.2)
             self._serial.dtr = False
             self._serial.rts = False
             self._serial.port = port
@@ -82,15 +82,21 @@ class SerialConnection(Connection):
 
         return x
 
-    def read_timeout(self, count, retries=100):
-        data = b""
-        for i in range(0, retries):
+    def _break_device_read(self):
+        time.sleep(1)
+        self.send_kill()
+
+    def read_with_timeout(self, count, timeout_s=2.0):
+        period = 0.005
+        data = bytearray()
+        for i in range(0, int(timeout_s / period)):
             rec = self._serial.read(count - len(data))
             if rec:
-                data += rec
+                data.extend(rec)
                 if len(data) == count:
-                    return data
-            time.sleep(0.01)
+                    return bytes(data)
+            time.sleep(period)
+
         return None
 
     def read_all(self):
@@ -156,14 +162,14 @@ class SerialConnection(Connection):
         try:
             resp = self.read_to_next_prompt()
             idx = resp.find("#V")
-            if idx < 0 or resp[idx:idx+3] != "#V1":
+            if idx < 0 or resp[idx:idx+3] != "#V2":
                 raise ValueError
             self.read_junk()
             self.send_block("with open(\"__download.py\") as f:\n  f.readline()\n")
             self._serial.flush()
             resp = self.read_to_next_prompt()
             idx = resp.find("#V")
-            if idx < 0 or resp[idx:idx+3] != "#V1":
+            if idx < 0 or resp[idx:idx+3] != "#V2":
                 raise ValueError
         except (TimeoutError, ValueError):
             success = False
@@ -215,15 +221,17 @@ class SerialConnection(Connection):
             with open(SerialConnection._transfer_file_path("upload.py")) as f:
                 data = f.read()
                 data = data.replace("\"file_name.py\"", "file_name")
-                res = self.send_file(data.encode('utf-8'), transfer)
+                self.send_file(data.encode('utf-8'), transfer)
+            transfer.mark_finished()
 
             self.run_file("__upload.py", "file_name=\"{}\"".format("__download.py"))
             self.read_all()
             with open(SerialConnection._transfer_file_path("download.py")) as f:
                 data = f.read()
                 data = data.replace("\"file_name.py\"", "file_name")
-                res = self.send_file(data.encode('utf-8'), transfer)
-        except FileNotFoundError:
+                self.send_file(data.encode('utf-8'), transfer)
+            transfer.mark_finished()
+        except (FileNotFoundError, FileTransferError):
             transfer.mark_error()
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
@@ -235,74 +243,61 @@ class SerialConnection(Connection):
 
     def send_file(self, data, transfer):
         assert isinstance(transfer, FileTransfer)
-        # Encode data to prevent special REPL sequences
-        encoded = bytearray()
-        for x in data:
-            if x < 10:
-                encoded.append(0x00)
-                encoded.append(x | 0xF0)
-            else:
-                encoded.append(x)
-        # Split encoded data into smaller chunks
+        # Split data into smaller chunks
         idx = 0
-        n = 64
-        total_len = len(encoded)
+        # Using chunks of 48 bytes, encoded chunk should be at most 64 bytes
+        n = 48
+        total_len = len(data)
         while idx < total_len:
-            chunk = encoded[idx:idx+n]
-            # Shorten chunk to prevent brake at special sequence
-            if chunk[len(chunk)-1] == 0x0:
-                chunk = chunk[0:-1]
-            # Set the most significant bit of length to also prevent REPL intercepting the byte
-            self._serial.write(b"".join([b"#", bytes([len(chunk) | 0x80]), chunk]))
-            ack = self.read_timeout(2)
+            chunk = data[idx:idx + n]
+            # Encode data to prevent special REPL sequences
+            en_chunk = base64.b64encode(chunk)
+            self._serial.write(b"".join([b"#", str(len(en_chunk)).zfill(2).encode("ascii"), en_chunk]))
+            ack = self.read_with_timeout(2)
             if not ack or ack != b"#1":
-                transfer.mark_error()
-                return False
+                # Make sure that the device isn't stuck in read
+                self._break_device_read()
+                raise FileTransferError()
             idx += len(chunk)
             transfer.progress = idx / total_len
-        # Mark end
-        self._serial.write(b"#\0")
-        check = self.read_timeout(3)
 
-        if check == b"#1#":
-            transfer.mark_finished()
-            return True
-        else:
-            transfer.mark_error()
-            return False
+        # Mark end and check for success
+        self._serial.write(b"#00")
+        check = self.read_with_timeout(2)
 
-    # TODO: Edit protocol to send total length so progress can be set correctly
+        if check != b"#0":
+            # Make sure that the device isn't stuck in read
+            self._break_device_read()
+            raise FileTransferError()
+
     def recv_file(self, transfer):
         assert isinstance(transfer, FileTransfer)
         result = b""
-        suc = False
+
         # Initiate transfer
         self._serial.write(b"###")
         while True:
-            data = self.read_timeout(2)
+            data = self.read_with_timeout(3)
             if not data or data[0] != ord("#"):
                 self._serial.write(b"#2")
                 break
-            count = data[1]
+            count = int(data[1:3])
             if count == 0:
-                suc = True
-                break
-            data = self.read_timeout(count)
+                transfer.read_result.binary_data = result
+                return
+            data = self.read_with_timeout(count)
             if data:
-                result += data
+                result += base64.b64decode(data)
                 # Send ACK
                 self._serial.write(b"#1")
             else:
                 self._serial.write(b"#3")
                 break
 
-        self._serial.write(b"#1#" if suc else b"#0#")
-        if suc:
-            transfer.mark_finished()
-            transfer.read_result.binary_data = result
-        else:
-            transfer.mark_error()
-            transfer.read_result.binary_data = None
+        # Make sure that the device isn't stuck in read
+        self._break_device_read()
+        transfer.read_result.binary_data = None
+        raise FileTransferError()
 
     def _write_file_job(self, file_name, text, transfer):
         if isinstance(text, str):
@@ -310,35 +305,39 @@ class SerialConnection(Connection):
 
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
-        transfer_ready = True
         if Settings().use_transfer_scripts:
             self.run_file("__upload.py", "file_name=\"{}\"".format(file_name))
         else:
             try:
                 self.send_upload_file(file_name)
             except FileNotFoundError:
-                transfer_ready = False
                 transfer.mark_error()
-        if transfer_ready:
+        if not transfer.error:
             self.read_junk()
-            self.send_file(text, transfer)
+            try:
+                self.send_file(text, transfer)
+                transfer.mark_finished()
+            except FileTransferError:
+                transfer.mark_error()
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
     def _read_file_job(self, file_name, transfer):
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
-        transfer_ready = True
         if Settings().use_transfer_scripts:
             self.run_file("__download.py", "file_name=\"{}\"".format(file_name))
         else:
             try:
                 self.send_download_file(file_name)
             except FileNotFoundError:
-                transfer_ready = False
                 transfer.mark_error()
-        if transfer_ready:
+        if not transfer.error:
             self.read_junk()
-            self.recv_file(transfer)
+            try:
+                self.recv_file(transfer)
+                transfer.mark_finished()
+            except FileTransferError:
+                transfer.mark_error()
         self._auto_read_enabled = True
         self._auto_reader_lock.release()

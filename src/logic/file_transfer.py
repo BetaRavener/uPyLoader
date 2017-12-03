@@ -3,6 +3,10 @@ class ReadResult:
         self.binary_data = b""
 
 
+class FileTransferError(Exception):
+    pass
+
+
 class FileTransfer:
     def __init__(self, signal):
         self._progress = 0
@@ -29,6 +33,7 @@ class FileTransfer:
         return self._finished
 
     def mark_finished(self):
+        self._check_state_for_completion()
         self._file += 1
         if self._file == self._file_count:
             self._finished = True
@@ -48,6 +53,7 @@ class FileTransfer:
         return self._cancelled
 
     def confirm_cancel(self):
+        self._check_state_for_completion()
         self._cancelled = True
         self._signal()
 
@@ -56,8 +62,21 @@ class FileTransfer:
         return self._error
 
     def mark_error(self):
+        self._check_state_for_completion()
         self._error = True
         self._signal()
 
     def set_file_count(self, count):
         self._file_count = count
+
+    def _check_state_for_completion(self):
+        reason = None
+        if self._finished:
+            reason = "was completed successfully"
+        elif self._cancelled:
+            reason = "was cancelled"
+        elif self._error:
+            reason = "failed because error occurred"
+
+        if reason:
+            raise RuntimeError("Can't set new state. File transfer {}.".format(reason))

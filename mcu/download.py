@@ -1,40 +1,36 @@
-#V1
-from machine import UART
+#V2
+import sys
 import time
+from ubinascii import b2a_base64
 
 
-def read_timeout(uart, count, retries=1000):
-    data = b""
-    for i in range(0, retries):
-        rec = uart.read(count - len(data))
-        if rec:
-            data += rec
-            if len(data) == count:
-                return data
-        time.sleep(0.01)
-    return None
+def _read_timeout(cnt, timeout_ms=2000):
+    time_support = "ticks_ms" in dir(time)
+    s_time = time.ticks_ms() if time_support else 0
+    data = sys.stdin.read(cnt)
+    if len(data) != cnt or (time_support and time.ticks_diff(time.ticks_ms(), s_time) > timeout_ms):
+        return None
+    return data
 
 
-def main():
-    uart = UART(0, 115200)
-    start = read_timeout(uart, 3)
-    suc = True
-    if start == b"###":
-        with open("file_name.py", "rb") as f:
-            n = 64
-            while True:
-                chunk = f.read(64)
-                if not chunk:
-                    break
-                x = uart.write(b"".join([b"#", bytes([len(chunk)]), chunk]))
-                ack = read_timeout(uart, 2)
-                if not ack or ack != b"#1":
-                    suc = False
-                    break
+def _download():
+    if _read_timeout(3) != "###":
+        return
+    with open("file_name.py", "rb") as f:
+        while True:
+            chunk = f.read(48)
+            if not chunk:
+                break
+            chunk = b2a_base64(chunk).strip()
+            if isinstance(chunk, bytes):
+                chunk = chunk.decode("ascii")
+            cl = len(chunk)
+            x = sys.stdout.write("".join(["#", "0" if cl < 10 else "", str(cl), chunk]))
+            ack = _read_timeout(2)
+            if not ack or ack != "#1":
+                return
 
-            # Mark end
-            if suc:
-                x = uart.write(b"#\0")
-        check = read_timeout(uart, 3)
+        # Mark end
+        x = sys.stdout.write("#00")
 
-main()
+_download()
