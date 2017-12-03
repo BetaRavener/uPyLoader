@@ -11,6 +11,7 @@ from src.connection.connection_scanner import ConnectionScanner
 from src.connection.serial_connection import SerialConnection
 from src.connection.terminal import Terminal
 from src.connection.wifi_connection import WifiConnection
+from src.gui.about_dialog import AboutDialog
 from src.gui.code_edit_dialog import CodeEditDialog
 from src.gui.file_transfer_dialog import FileTransferDialog
 from src.gui.flash_dialog import FlashDialog
@@ -42,6 +43,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._code_editor = None
         self._flash_dialog = None
         self._settings_dialog = None
+        self._about_dialog = None
         self._preset_password = None
 
         self.actionNavigate.triggered.connect(self.navigate_directory)
@@ -50,6 +52,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionUpload.triggered.connect(self.upload_transfer_scripts)
         self.actionFlash.triggered.connect(self.open_flash_dialog)
         self.actionSettings.triggered.connect(self.open_settings_dialog)
+        self.actionAbout.triggered.connect(self.open_about_dialog)
 
         self.connectionComboBox.currentIndexChanged.connect(self.connection_changed)
         self.refreshButton.clicked.connect(self.refresh_ports)
@@ -591,3 +594,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._settings_dialog = None
         # Update compile button as mpy-cross path might have been set
         self.update_compile_button()
+
+    def open_about_dialog(self):
+        if self._about_dialog is not None:
+            return
+        self._settings_dialog = AboutDialog(self)
+        self._settings_dialog.finished.connect(self.close_about_dialog)
+        self._settings_dialog.show()
+
+    def close_about_dialog(self):
+        self._about_dialog = None

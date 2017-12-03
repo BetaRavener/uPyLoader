@@ -11,3 +11,4 @@ uPyLoader.lnk
 dist/*
 *.exe
 *.swp
+*.DS_Store
