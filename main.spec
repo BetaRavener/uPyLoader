@@ -38,3 +38,7 @@ exe = EXE(pyz,
           console=False,
           icon='icons//main.ico' )
 
+app = BUNDLE(exe,
+             name='uPyLoader.app',
+             icon='icons//main-512.icns',
+             bundle_identifier=None)
