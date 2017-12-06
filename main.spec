@@ -19,6 +19,7 @@ a = Analysis(['main.py'],
              win_private_assemblies=False,
              cipher=block_cipher)
 a.datas += [('icons//main.png','icons//main.png','DATA'),
+            ('icons//main-512.png','icons//main-512.png','DATA'),
             ('icons//floppy.png','icons//floppy.png','DATA'),
             ('icons//refresh.png','icons//refresh.png','DATA'),
             ('icons//run.png','icons//run.png','DATA'),
