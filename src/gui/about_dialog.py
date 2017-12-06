@@ -1,11 +1,8 @@
-from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtGui import QFontDatabase
-from PyQt5.QtWidgets import QMessageBox, QDialog
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QDialog
 
 from gui.about_dialog import Ui_AboutDialog
-from gui.code_edit import Ui_CodeEditDialog
-from src.gui.file_transfer_dialog import FileTransferDialog
-from src.utility.settings import Settings
+from src.utility.versioning import Versioning
 
 
 class AboutDialog(QDialog, Ui_AboutDialog):
@@ -14,4 +11,4 @@ class AboutDialog(QDialog, Ui_AboutDialog):
         self.setupUi(self)
         self.setModal(True)
         self.setSizeGripEnabled(False)
-        self.versionLabel.setText("0.1.3 (dev)")
+        self.versionLabel.setText(Versioning.get_version_string())
