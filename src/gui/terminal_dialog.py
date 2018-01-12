@@ -19,6 +19,7 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         super(TerminalDialog, self).__init__(None, Qt.WindowCloseButtonHint)
         self.setupUi(self)
 
+        self.setWindowFlags(Qt.Window)
         geometry = Settings().retrieve_geometry("terminal")
         if geometry:
             self.restoreGeometry(geometry)
