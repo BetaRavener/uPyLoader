@@ -12,6 +12,7 @@ class WebSocket:
     def __init__(self, s):
         self.s = s
         self.buf = b""
+        self.recv_timeout = 5
 
     def write(self, data, file_transfer=False):
         ft = 0x82 if file_transfer else 0x81
@@ -43,10 +44,10 @@ class WebSocket:
                 # Sleep for a while and then try again.
                 time.sleep(3)
 
-    def recvexactly(self, sz, timeout=5):
+    def recvexactly(self, sz):
         res = b""
         while sz:
-            read_sockets, _, _ = select.select([self.s], [], [], timeout)
+            read_sockets, _, _ = select.select([self.s], [], [], self.recv_timeout)
             if not read_sockets:
                 raise TimeoutError()
             data = self.s.recv(sz)

@@ -241,6 +241,10 @@ class WifiConnection(Connection):
             return
 
         cnt = 0
+        # Increase timeout from default value which gives
+        # more time to MCU to process large files.
+        original_timeout = self.ws.recv_timeout
+        self.ws.recv_timeout = 30
         try:
             while True:
                 buf = text[cnt:cnt + 256]
@@ -265,6 +269,8 @@ class WifiConnection(Connection):
                 "".join(traceback.format_tb(generalException.__traceback__))
             )
             transfer.mark_error(info)
+        finally:
+            self.ws.recv_timeout = original_timeout
 
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
