@@ -1,5 +1,5 @@
 import struct
-
+import time
 import select
 
 DEBUG = 1
@@ -24,8 +24,24 @@ class WebSocket:
             hdr = struct.pack(">BB", ft, l)
         else:
             hdr = struct.pack(">BBH", ft, 126, l)
-        self.s.send(hdr)
-        self.s.send(data)
+
+        msg = hdr + data
+        sent = 0
+        retries = 0
+
+        # TODO: refactor (make parametric) if this helps
+        while sent != len(msg):
+            if retries == 5:
+                raise ConnectionError("Sending data failed.")
+
+            try:
+                retries += 1
+                sent += self.s.send(msg[sent:])
+            except BlockingIOError:
+                # This may happen when socket send buffer becomes full on non-blocking socket
+                # which may be result of lag or other temporary problem in communication.
+                # Sleep for a while and then try again.
+                time.sleep(3)
 
     def recvexactly(self, sz, timeout=5):
         res = b""

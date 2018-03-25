@@ -15,6 +15,7 @@ class FileTransfer:
         self._cancel_scheduled = False
         self._cancelled = False
         self._finished = False
+        self._error_msg = ""
         self._error = False
         self._signal = signal
         self.read_result = ReadResult()
@@ -58,11 +59,16 @@ class FileTransfer:
         self._signal()
 
     @property
+    def error_msg(self):
+        return self._error_msg
+
+    @property
     def error(self):
         return self._error
 
-    def mark_error(self):
+    def mark_error(self, msg=""):
         self._check_state_for_completion()
+        self._error_msg = msg
         self._error = True
         self._signal()
 

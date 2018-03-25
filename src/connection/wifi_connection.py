@@ -2,6 +2,9 @@ import re
 import socket
 import struct
 from threading import Thread
+import traceback
+
+import time
 
 from src.connection.connection import Connection
 from src.connection.websocket import WebSocket
@@ -238,19 +241,30 @@ class WifiConnection(Connection):
             return
 
         cnt = 0
-        while True:
-            buf = text[cnt:cnt + 256]
-            if not buf:
-                break
-            self.ws.write(buf, file_transfer=True)
-            cnt += len(buf)
-            transfer.progress = cnt / sz
+        try:
+            while True:
+                buf = text[cnt:cnt + 256]
+                if not buf:
+                    break
+                self.ws.write(buf, file_transfer=True)
+                cnt += len(buf)
+                transfer.progress = cnt / sz
 
-        if self.read_resp(self.ws) == 0:
-            transfer.mark_finished()
-        else:
+            if self.read_resp(self.ws) == 0:
+                transfer.mark_finished()
+            else:
+                transfer.mark_error()
+        except ConnectionResetError:
+            transfer.mark_error("Connection was reset.")
+        except ConnectionError:
             transfer.mark_error()
+        except Exception as generalException:
+            info = "Unexpected error, report this on project's github issues page\n{}: {}\n{}".format(
+                type(generalException).__name__,
+                str(generalException),
+                "".join(traceback.format_tb(generalException.__traceback__))
+            )
+            transfer.mark_error(info)
+
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
-
-

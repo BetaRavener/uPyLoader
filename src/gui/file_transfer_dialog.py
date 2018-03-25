@@ -36,7 +36,10 @@ class FileTransferDialog(QDialog, Ui_FileTransferDialog):
 
     def _update_progress(self):
         if self._transfer.error:
-            QMessageBox().critical(self, "Error", "File transfer failed.", QMessageBox.Ok)
+            additional_info = ""
+            if self._transfer.error_msg:
+                additional_info = "\n\nReason:\n{}".format(self._transfer.error_msg)
+            QMessageBox().critical(self, "Error", "File transfer failed.{}".format(additional_info), QMessageBox.Ok)
             self.reject()
         elif self._transfer.cancelled:
             self.reject()
