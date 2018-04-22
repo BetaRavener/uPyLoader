@@ -150,6 +150,7 @@ class WifiConnection(Connection):
         success = True
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
+        self.send_kill()
         self.read_junk()
         self.ws.write("import os;os.listdir()\r\n")
         ret = ""
