@@ -12,12 +12,12 @@
 * Editing via built-in or external editor
 
 <p align="center">
-  <img src="https://s29.postimg.org/ybib0iwd3/main.png" width="400">
+  <img src="https://raw.githubusercontent.com/BetaRavener/uPyLoader/master/images/main.png" width="400">
 </p>
 
 Terminal  | Code Editor  | Settings
 :--------:|:------------:|:---------:
-![](https://s29.postimg.org/lzk00rxw7/term.png)  |  ![](https://s29.postimg.org/nan5vi447/editor.png) | ![](https://s29.postimg.org/6pfjfud07/settings.png) 
+![](https://raw.githubusercontent.com/BetaRavener/uPyLoader/master/images/term.png)  |  ![](https://raw.githubusercontent.com/BetaRavener/uPyLoader/master/images/editor.png) | ![](https://raw.githubusercontent.com/BetaRavener/uPyLoader/master/images/settings.png) 
 
 ### Setup:
 #### Using executable file (Windows and Linux)
