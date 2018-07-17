@@ -45,8 +45,14 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         if Settings().preferred_port:
             self.preferredPortLineEdit.setText(Settings().preferred_port)
 
+        self.useTransferFilesCheckBox.stateChanged.connect(self.update_external_scripts_controls)
+        self.useCustomTransferFilesCheckBox.stateChanged.connect(self.update_external_scripts_controls)
         if Settings().external_transfer_scripts_folder:
             self.transferFilesPathLineEdit.setText(Settings().external_transfer_scripts_folder)
+
+        self.useTransferFilesCheckBox.setChecked(Settings().use_transfer_scripts)
+        self.useCustomTransferFilesCheckBox.setChecked(Settings().use_custom_transfer_scripts)
+
         self.transferFilesPathBrowseButton.clicked.connect(self.browse_external_transfer_files)
 
     def accept(self):
@@ -71,6 +77,12 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         if path[0]:
             self.mpyCrossPathLineEdit.setText(path[0])
 
+    def update_external_scripts_controls(self):
+        self.useCustomTransferFilesCheckBox.setEnabled(self.useTransferFilesCheckBox.isChecked())
+        edit_enabled = self.useCustomTransferFilesCheckBox.isEnabled() and \
+                       self.useCustomTransferFilesCheckBox.isChecked()
+        self.transferFilesPathLineEdit.setEnabled(edit_enabled)
+
     def browse_external_transfer_files(self):
         path = QFileDialog().getExistingDirectory(
             caption="Select transfer files folder",
@@ -88,6 +100,8 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         Settings().terminal_tab_spaces = self.tabSpacesSpinBox.value()
         Settings().mpy_cross_path = self.mpyCrossPathLineEdit.text()
         Settings().preferred_port = self.preferredPortLineEdit.text()
+        Settings().use_transfer_scripts = self.useTransferFilesCheckBox.isChecked()
+        Settings().use_custom_transfer_scripts = self.useCustomTransferFilesCheckBox.isChecked()
         Settings().external_transfer_scripts_folder = self.transferFilesPathLineEdit.text()
         Settings().save()
 
@@ -97,4 +111,3 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         edit.setObjectName(name)
 
         return edit
-

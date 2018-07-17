@@ -180,9 +180,9 @@ class SerialConnection(Connection):
     @staticmethod
     def _transfer_file_path(transfer_file_name):
         # External transfer scripts folder should be used (use case: files need to be edited)
-        if Settings().external_transfer_scripts_folder:
+        if Settings().use_custom_transfer_scripts:
             path = "".join([Settings().external_transfer_scripts_folder, "/", transfer_file_name])
-            # Check if file exists. If not, ignore external folder path.
+            # Check if file exists.
             if os.path.isfile(path):
                 return path
             else:
