@@ -231,15 +231,24 @@ class SerialConnection(Connection):
                 data = data.replace("\"file_name.py\"", "file_name")
                 self.send_file(data.encode('utf-8'), transfer)
             transfer.mark_finished()
-        except (FileNotFoundError, FileTransferError):
-            transfer.mark_error()
+        except FileNotFoundError:
+            transfer.mark_error("Couldn't locate transfer scripts.")
+        except FileTransferError as e:
+            transfer.mark_error(e.details)
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
     def upload_transfer_files(self, transfer):
         job_thread = Thread(target=self._upload_transfer_files_job, args=[transfer])
+        # Set thread as daemon so in case main window is closed, this
+        # tasks gets aborted and program will close immediately
         job_thread.setDaemon(True)
         job_thread.start()
+
+    def handle_transfer_error(self, message):
+        # Make sure that the device isn't stuck in read
+        self._break_device_read()
+        raise FileTransferError(message)
 
     def send_file(self, data, transfer):
         assert isinstance(transfer, FileTransfer)
@@ -254,10 +263,22 @@ class SerialConnection(Connection):
             en_chunk = base64.b64encode(chunk)
             self._serial.write(b"".join([b"#", str(len(en_chunk)).zfill(2).encode("ascii"), en_chunk]))
             ack = self.read_with_timeout(2)
-            if not ack or ack != b"#1":
-                # Make sure that the device isn't stuck in read
-                self._break_device_read()
-                raise FileTransferError()
+
+            error = None
+            if not ack:
+                error = "Device failed to respond in specified timeout."
+            elif ack == b"#2":
+                error = "Device didn't receive next message in time or message header got corrupted."
+            elif ack == b"#3":
+                error = "Device didn't receive as much data as was indicated in the message header."
+            elif ack != b"#1":
+                error = "Error in protocol. Expected #1 but device replied with:\n{}.".format(
+                    ack.decode(errors='ignore'))
+
+            if error:
+                error += "\n\nLast message was:\n{}.".format(chunk.decode(errors='ignore'))
+                self.handle_send_file_error(error)
+
             idx += len(chunk)
             transfer.progress = idx / total_len
 
@@ -265,10 +286,15 @@ class SerialConnection(Connection):
         self._serial.write(b"#00")
         check = self.read_with_timeout(2)
 
+        error = None
+        if not check:
+            error = "Device failed to respond in specified timeout."
         if check != b"#0":
-            # Make sure that the device isn't stuck in read
-            self._break_device_read()
-            raise FileTransferError()
+            error = "Error in protocol. Expected #0 but device replied with: {}.".format(
+                check.decode(errors='ignore'))
+
+        if error:
+            self.handle_send_file_error(error)
 
     def recv_file(self, transfer):
         assert isinstance(transfer, FileTransfer)
@@ -294,10 +320,8 @@ class SerialConnection(Connection):
                 self._serial.write(b"#3")
                 break
 
-        # Make sure that the device isn't stuck in read
-        self._break_device_read()
         transfer.read_result.binary_data = None
-        raise FileTransferError()
+        self.handle_transfer_error("")
 
     def _write_file_job(self, file_name, text, transfer):
         if isinstance(text, str):
@@ -311,14 +335,14 @@ class SerialConnection(Connection):
             try:
                 self.send_upload_file(file_name)
             except FileNotFoundError:
-                transfer.mark_error()
+                transfer.mark_error("Couldn't locate upload transfer script.")
         if not transfer.error:
             self.read_junk()
             try:
                 self.send_file(text, transfer)
                 transfer.mark_finished()
-            except FileTransferError:
-                transfer.mark_error()
+            except FileTransferError as e:
+                transfer.mark_error(e.details)
         self._auto_read_enabled = True
         self._auto_reader_lock.release()
 
@@ -331,13 +355,13 @@ class SerialConnection(Connection):
             try:
                 self.send_download_file(file_name)
             except FileNotFoundError:
-                transfer.mark_error()
+                transfer.mark_error("Couldn't locate download transfer script.")
         if not transfer.error:
             self.read_junk()
             try:
                 self.recv_file(transfer)
                 transfer.mark_finished()
-            except FileTransferError:
-                transfer.mark_error()
+            except FileTransferError as e:
+                transfer.mark_error(e.details)
         self._auto_read_enabled = True
         self._auto_reader_lock.release()

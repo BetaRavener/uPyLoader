@@ -4,7 +4,8 @@ class ReadResult:
 
 
 class FileTransferError(Exception):
-    pass
+    def __init__(self, details=""):
+        self.details = details
 
 
 class FileTransfer:
