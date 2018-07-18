@@ -1,6 +1,7 @@
 # uPyLoader
 ## A simple tool for communicating with MicroPython board.
-## If you are missing a feature or find a bug, please create a new issue (Issues tab). 
+### See [FAQ](https://github.com/BetaRavener/uPyLoader/wiki/FAQ) for common problems not necessarily related to uPyLoader.
+### If you are missing a feature or find a bug, please create a new issue (Issues tab).
 ### The tool is in Alpha version! It may hang or crash on certain user actions. Please, restart the application in such case.
 
 ### Features:
