@@ -73,3 +73,4 @@ Sec-WebSocket-Key: foo\r
         if l == b"\r\n":
             break
 #        sys.stdout.write(l)
+    # TODO: Timeout - Getting stuck during connection

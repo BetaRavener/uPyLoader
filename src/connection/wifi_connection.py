@@ -148,10 +148,17 @@ class WifiConnection(Connection):
     #TODO: Could be merged with serial connection?
     def list_files(self):
         success = True
+
+        # Perform cleanup so that we are ready to list files
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
-        self.send_kill()
+        # Causes to read any leftover output
         self.read_junk()
+        # Kills any running program and reads until prompt
+        self.send_kill()
+        self.read_to_next_prompt()
+
+        # Send list command and read output
         self.ws.write("import os;os.listdir()\r\n")
         ret = ""
         try:
@@ -172,15 +179,21 @@ class WifiConnection(Connection):
         assert sig == b"WB"
         return code
 
-    # TODO: Edit protocol to send total length so progress can be set correctly
     def _read_file_job(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
+
+        try:
+            file_size = self.get_file_size(file_name)
+        except OperationError:
+            transfer.mark_error("Failed to determine file size.")
+            return
+
         if isinstance(file_name, str):
             file_name = file_name.encode("utf-8")
 
         ret = b""
-        rec = struct.pack(WifiConnection.WEBREPL_REQ_S, b"WA", WifiConnection.WEBREPL_GET_FILE, 0, 0, 0, len(file_name),
-                          file_name)
+        rec = struct.pack(WifiConnection.WEBREPL_REQ_S, b"WA", WifiConnection.WEBREPL_GET_FILE,
+                          0, 0, 0, len(file_name), file_name)
 
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
@@ -201,6 +214,7 @@ class WifiConnection(Connection):
                     raise OSError()
                 ret += buf
                 sz -= len(buf)
+            transfer.progress = len(ret) / file_size
 
         if self.read_resp(self.ws) == 0:
             transfer.mark_finished()

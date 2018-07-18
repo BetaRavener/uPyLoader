@@ -38,7 +38,7 @@ class Connection:
             ret += self.read_one_byte()
         return ret.decode("utf-8", errors="replace")
 
-    def send_line(self, line_text, ending):
+    def send_line(self, line_text, ending="\r\n"):
         raise NotImplementedError()
 
     def send_character(self, char):
@@ -50,19 +50,19 @@ class Connection:
     def send_block(self, text):
         lines = text.split("\n")
         if len(lines) == 1:
-            self.send_line(lines[0], "\r")
+            self.send_line(lines[0])
         elif len(lines) > 1:
             self.send_start_paste()
             for line in lines:
-                self.send_line(line, "\r")
+                self.send_line(line)
             self.send_end_paste()
 
     def run_file(self, file_name, globals_init=""):
         self.send_start_paste()
         if globals_init:
             self.send_line(globals_init, "\r")
-        self.send_line("with open(\"{}\") as f:".format(file_name), "\r")
-        self.send_line("    exec(f.read(), globals())", "\r")
+        self.send_line("with open(\"{}\") as f:".format(file_name))
+        self.send_line("    exec(f.read(), globals())")
         self.send_end_paste()
 
     def remove_file(self, file_name):
@@ -79,6 +79,28 @@ class Connection:
         self._auto_reader_lock.release()
         if not success:
             raise OperationError()
+
+    def get_file_size(self, file_name):
+        success = True
+        file_size = 0
+        self._auto_reader_lock.acquire()
+        self._auto_read_enabled = False
+        self.send_line("import os; os.stat(\"{}\")".format(file_name))
+        try:
+            res = self.read_to_next_prompt()
+            # Skip first line which is command echo
+            res = res[res.find("\n"):]
+            # Strip parentheses and split to items
+            items = res.strip("()\r\n ").split(", ")
+            # Sixth item is file size
+            file_size = int(items[6])
+        except TimeoutError:
+            success = False
+        self._auto_read_enabled = True
+        self._auto_reader_lock.release()
+        if not success:
+            raise OperationError()
+        return file_size
 
     def send_start_paste(self):
         self.send_character("\5")

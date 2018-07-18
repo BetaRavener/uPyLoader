@@ -277,7 +277,7 @@ class SerialConnection(Connection):
 
             if error:
                 error += "\n\nLast message was:\n{}.".format(chunk.decode(errors='ignore'))
-                self.handle_send_file_error(error)
+                self.handle_transfer_error(error)
 
             idx += len(chunk)
             transfer.progress = idx / total_len
@@ -294,9 +294,9 @@ class SerialConnection(Connection):
                 check.decode(errors='ignore'))
 
         if error:
-            self.handle_send_file_error(error)
+            self.handle_transfer_error(error)
 
-    def recv_file(self, transfer):
+    def recv_file(self, transfer, file_size):
         assert isinstance(transfer, FileTransfer)
         result = b""
 
@@ -319,6 +319,7 @@ class SerialConnection(Connection):
             else:
                 self._serial.write(b"#3")
                 break
+            transfer.progress = len(result) / file_size
 
         transfer.read_result.binary_data = None
         self.handle_transfer_error("")
@@ -347,6 +348,12 @@ class SerialConnection(Connection):
         self._auto_reader_lock.release()
 
     def _read_file_job(self, file_name, transfer):
+        try:
+            file_size = self.get_file_size(file_name)
+        except OperationError:
+            transfer.mark_error("Failed to determine file size.")
+            return
+
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         if Settings().use_transfer_scripts:
@@ -359,7 +366,7 @@ class SerialConnection(Connection):
         if not transfer.error:
             self.read_junk()
             try:
-                self.recv_file(transfer)
+                self.recv_file(transfer, file_size)
                 transfer.mark_finished()
             except FileTransferError as e:
                 transfer.mark_error(e.details)

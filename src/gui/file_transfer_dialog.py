@@ -22,10 +22,10 @@ class FileTransferDialog(QDialog, Ui_FileTransferDialog):
 
         if type == FileTransferDialog.UPLOAD:
             self.label.setText("Saving file.")
-            self.progressBar.setRange(0, 100)
         elif type == FileTransferDialog.DOWNLOAD:
             self.label.setText("Reading file.")
-            self.progressBar.setRange(0, 0)
+
+        self.progressBar.setRange(0, 100)
 
         self.progressBar.setValue(0)
         self._update_signal.connect(self._update_progress)
