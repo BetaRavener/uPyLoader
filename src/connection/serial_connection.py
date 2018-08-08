@@ -26,14 +26,23 @@ class SerialConnection(Connection):
             self._serial.rts = False
             self._serial.port = port
             self._serial.open()
+
+            kill_and_wait = not reset
             if reset:
                 self._serial.rts = True
                 time.sleep(0.1)
                 self._serial.rts = False
-                x = ""
-                while not x.endswith(">>>"):
-                    x += self._serial.read().decode('utf-8', errors="ignore")
-            self.send_kill()
+                try:
+                    # Give board time to reset (10 seconds should be enough)
+                    self.read_to_next_prompt(10)
+                except TimeoutError:
+                    # If we still get time out, a script was probably
+                    # started automatically and needs to be killed
+                    kill_and_wait = True
+            if kill_and_wait:
+                self.send_kill()
+                self.read_to_next_prompt()
+
         except (OSError, serial.SerialException) as e:
             self._serial = None
             return
@@ -59,6 +68,7 @@ class SerialConnection(Connection):
         assert isinstance(ending, str)
 
         self._serial.write((line_text + ending).encode('utf-8'))
+        self._serial.flush()
         time.sleep(Settings().send_sleep)
 
     def send_character(self, char):
@@ -117,27 +127,6 @@ class SerialConnection(Connection):
 
     def read_one_byte(self):
         return self._serial.read(1)
-
-    def list_files(self):
-        success = True
-        self._auto_reader_lock.acquire()
-        self._auto_read_enabled = False
-        self.send_kill()
-        self.read_junk()
-        self.send_line("import os; os.listdir()")
-        self._serial.flush()
-        ret = ""
-        try:
-            ret = self.read_to_next_prompt()
-        except TimeoutError:
-            success = False
-        self._auto_read_enabled = True
-        self._auto_reader_lock.release()
-
-        if success and ret:
-            return re.findall("'([^']+)'", ret)
-        else:
-            raise OperationError()
 
     @staticmethod
     def escape_characters(text):

@@ -31,6 +31,7 @@ class ConnectionScanner:
         for port in ports:
             try:
                 s = serial.Serial()
+                # DTR & RTS: False == High, True == Low
                 s.dtr = False
                 s.rts = False
                 s.port = port

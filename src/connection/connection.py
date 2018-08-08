@@ -1,4 +1,5 @@
 import time
+import re
 from threading import Lock, Thread
 
 from src.utility.exceptions import OperationError
@@ -126,7 +127,41 @@ class Connection:
         return local_file_path.rsplit("/", 1)[1]
 
     def list_files(self):
-        raise NotImplementedError()
+        success = True
+        # Pause autoreader so we can receive response
+        self._auto_reader_lock.acquire()
+        self._auto_read_enabled = False
+        # Stop any running script
+        self.send_kill()
+        # Read any leftovers
+        self.read_junk()
+        # Mark the start of file listing communication
+        self.send_line("print('#fs#')")
+        # Now we either wait for any running program to finish
+        # or read output that it might be producing until it finally
+        # closes and our command gets executed.
+        ret = ""
+        while "#fs#" not in ret:
+            try:
+                ret = self.read_to_next_prompt()
+            except TimeoutError:
+                success = False
+        # Now we can be sure that we are ready for listing files
+        # Send command for listing files
+        if success:
+            self.send_line("import os; os.listdir()")
+            # Wait for reply
+            try:
+                ret = self.read_to_next_prompt()
+            except TimeoutError:
+                success = False
+        self._auto_read_enabled = True
+        self._auto_reader_lock.release()
+
+        if success and ret:
+            return re.findall("'([^']+)'", ret)
+        else:
+            raise OperationError()
 
     def _write_file_job(self, remote_name, content, transfer):
         raise NotImplementedError()
