@@ -8,3 +8,7 @@ class NewPasswordException(Exception):
 
 class OperationError(Exception):
     pass
+
+
+class HostnameResolutionError(Exception):
+    pass

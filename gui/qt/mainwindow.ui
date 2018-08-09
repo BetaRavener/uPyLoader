@@ -171,13 +171,16 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="toolTip">
+             <string>IP address or domain name</string>
+            </property>
             <property name="text">
-             <string>IP</string>
+             <string>Address</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="ipLineEdit">
+           <widget class="QLineEdit" name="addressLineEdit">
             <property name="maximumSize">
              <size>
               <width>110</width>
@@ -506,7 +509,7 @@
      <x>0</x>
      <y>0</y>
      <width>794</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

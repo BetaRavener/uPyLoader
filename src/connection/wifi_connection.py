@@ -10,7 +10,7 @@ from src.connection.connection import Connection
 from src.connection.websocket import WebSocket
 from src.helpers import websocket_helper
 from src.logic.file_transfer import FileTransfer
-from src.utility.exceptions import PasswordException, NewPasswordException, OperationError
+from src.utility.exceptions import PasswordException, NewPasswordException, OperationError, HostnameResolutionError
 
 
 class WifiConnection(Connection):
@@ -26,8 +26,11 @@ class WifiConnection(Connection):
         self.s = None
         self.ws = None
 
-        if not self._start_connection():
-            return
+        try:
+            self._start_connection()
+        except Exception as e:
+            self._clear()
+            raise e
 
         if not self.handle_password(password_prompt):
             self._clear()
@@ -39,17 +42,19 @@ class WifiConnection(Connection):
     def _start_connection(self):
         self.s = socket.socket()
         self.s.settimeout(3)
-        errno = self.s.connect_ex((self._host, self._port))
+        try:
+            errno = self.s.connect_ex((self._host, self._port))
+        except socket.gaierror:  # Failed to resolve hostname
+            raise HostnameResolutionError()
         if errno != 0:
-            self._clear()
-            return False
+            raise ConnectionError("Failed to connect to the device.")
         self.s.settimeout(None)
 
         # Test if connection is working
         try:
             websocket_helper.client_handshake(self.s)
         except (ConnectionResetError, ConnectionAbortedError):
-            return False
+            raise ConnectionError("Device refused connection.")
 
         self.s.setblocking(0)
         self.ws = WebSocket(self.s)
@@ -57,7 +62,8 @@ class WifiConnection(Connection):
 
     def _clear(self):
         self.ws = None
-        self.s.close()
+        if self.s:
+            self.s.close()
         self.s = None
 
     def set_password(self):

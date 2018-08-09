@@ -20,7 +20,7 @@ from src.gui.terminal_dialog import TerminalDialog
 from src.gui.wifi_preset_dialog import WiFiPresetDialog
 from src.helpers.ip_helper import IpHelper
 from src.logic.file_transfer import FileTransfer
-from src.utility.exceptions import PasswordException, NewPasswordException, OperationError
+from src.utility.exceptions import PasswordException, NewPasswordException, OperationError, HostnameResolutionError
 from src.utility.settings import Settings
 
 
@@ -139,6 +139,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif status == "Password":
             self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
             status = "Wrong Password"
+        elif status == "Host":
+            self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
+            status = "Invalid IP or domain"
         else:
             self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
         self.statusLabel.setText(status)
@@ -272,16 +275,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         connection = self._connection_scanner.port_list[self.connectionComboBox.currentIndex()]
 
         if connection == "wifi":
-            ip_address = self.ipLineEdit.text()
+            host = self.addressLineEdit.text()
             port = self.portSpinBox.value()
-            if not IpHelper.is_valid_ipv4(ip_address):
-                QMessageBox().warning(self, "Invalid IP", "The IP address has invalid format", QMessageBox.Ok)
-                return
 
             try:
-                self._connection = WifiConnection(ip_address, port, self._terminal, self.ask_for_password)
+                self._connection = WifiConnection(host, port, self._terminal, self.ask_for_password)
+            except ConnectionError:
+                # Do nothing, _connection will be None and code
+                # at the end of function will handle this
+                pass
             except PasswordException:
                 self.set_status("Password")
+                return
+            except HostnameResolutionError:
+                self.set_status("Host")
                 return
             except NewPasswordException:
                 QMessageBox().information(self, "Password set",
@@ -331,7 +338,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dialog.exec()
 
     def use_preset(self, ip, port, password):
-        self.ipLineEdit.setText(ip)
+        self.addressLineEdit.setText(ip)
         self.portSpinBox.setValue(port)
         self._preset_password = password
 
