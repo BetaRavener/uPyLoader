@@ -57,6 +57,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionSettings.triggered.connect(self.open_settings_dialog)
         self.actionAbout.triggered.connect(self.open_about_dialog)
 
+        self.lastSelectedConnection = None
         self.connectionComboBox.currentIndexChanged.connect(self.connection_changed)
         self.refreshButton.clicked.connect(self.refresh_ports)
 
@@ -108,21 +109,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def connection_changed(self):
         connection = self._connection_scanner.port_list[self.connectionComboBox.currentIndex()]
         self.connectionStackedWidget.setCurrentIndex(1 if connection == "wifi" else 0)
+        self.lastSelectedConnection = connection
 
     def refresh_ports(self):
+        # Cache value of last selected connection because it might change when manipulating combobox
+        last_selected_connection = self.lastSelectedConnection
+
         self._connection_scanner.scan_connections(with_wifi=True)
-        # Populate port combo box and select default
         self.connectionComboBox.clear()
 
+        # Test if there are any available ports
         if self._connection_scanner.port_list:
-            selected_port_idx = 0
+            selected_port_idx = -1
             pref_port = Settings().preferred_port
+
+            # Populate port combo box and get index of preferred port if available
             for i, port in enumerate(self._connection_scanner.port_list):
                 self.connectionComboBox.addItem(port)
                 if pref_port and port.upper() == pref_port.upper():
                     selected_port_idx = i
 
-            self.connectionComboBox.setCurrentIndex(selected_port_idx)
+            # Override preferred port if user made selection and this port is still available
+            if last_selected_connection and last_selected_connection in self._connection_scanner.port_list:
+                selected_port_idx = self._connection_scanner.port_list.index(last_selected_connection)
+            # Set current port
+            self.connectionComboBox.setCurrentIndex(selected_port_idx if selected_port_idx >= 0 else 0)
             self.connectButton.setEnabled(True)
         else:
             self.connectButton.setEnabled(False)
