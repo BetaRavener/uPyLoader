@@ -21,6 +21,7 @@ from src.gui.wifi_preset_dialog import WiFiPresetDialog
 from src.helpers.ip_helper import IpHelper
 from src.logic.file_transfer import FileTransfer
 from src.utility.exceptions import PasswordException, NewPasswordException, OperationError, HostnameResolutionError
+from src.utility.file_info import FileInfo
 from src.utility.settings import Settings
 
 
@@ -221,12 +222,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.localFilesTreeView.setRootIndex(model.index(self._root_dir))
 
     def serial_mcu_connection_valid(self):
-        file_list = []
         try:
-            file_list = self._connection.list_files()
+            self._connection.list_files()
             return True
         except OperationError:
-            file_list = None
             return False
 
     def list_mcu_files(self):
@@ -373,17 +372,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         local_path = model.filePath(idx)
         remote_path = local_path.rsplit("/", 1)[1]
-        if local_path.endswith(".py"):
-            if Settings().external_editor_path:
-                self.open_external_editor(local_path)
-            else:
-                with open(local_path) as f:
-                    text = "".join(f.readlines())
-                    self.open_code_editor()
-                    self._code_editor.set_code(local_path, remote_path, text)
+
+        if Settings().external_editor_path:
+            self.open_external_editor(local_path)
         else:
-            QMessageBox.information(self, "Unknown file", "Files without .py ending won't open"
-                                                          " in editor, but can still be transferred.")
+            if FileInfo.is_file_binary(local_path):
+                QMessageBox.information(self, "Binary file detected", "Editor doesn't support binary files.")
+                return
+            with open(local_path) as f:
+                text = "".join(f.readlines())
+                self.open_code_editor()
+                self._code_editor.set_code(local_path, remote_path, text)
 
     def mcu_file_selection_changed(self):
         idx = self.mcuFilesListView.currentIndex()
@@ -487,8 +486,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def finished_read_mcu_file(self, file_name, transfer):
         assert isinstance(transfer, FileTransfer)
         result = transfer.read_result
-        text = result.binary_data.decode("utf-8",
-                                         errors="replace") if result.binary_data is not None else "!Failed to read file!"
+
+        if result.binary_data:
+            try:
+                text = result.binary_data.decode("utf-8", "strict")
+            except UnicodeDecodeError:
+                QMessageBox.information(self, "Binary file detected", "Editor doesn't support binary files, "
+                                                                      "but these can still be transferred.")
+                return
+        else:
+            text = "! Failed to read file !"
+
         self.open_code_editor()
         self._code_editor.set_code(None, file_name, text)
 
@@ -497,10 +505,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         model = self.mcuFilesListView.model()
         assert isinstance(model, QStringListModel)
         file_name = model.data(idx, Qt.EditRole)
-        if not file_name.endswith(".py"):
-            QMessageBox.information(self, "Unknown file", "Files without .py ending won't open"
-                                                          " in editor, but can still be transferred.")
-            return
 
         progress_dlg = FileTransferDialog(FileTransferDialog.DOWNLOAD)
         progress_dlg.finished.connect(lambda: self.finished_read_mcu_file(file_name, progress_dlg.transfer))
