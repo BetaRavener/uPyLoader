@@ -38,6 +38,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if geometry:
             self.localFilesTreeView.header().restoreState(geometry)
 
+        self._pref_port_found = False
+
         self._connection_scanner = ConnectionScanner()
         self._connection = None
         self._root_dir = Settings().root_dir
@@ -115,6 +117,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def refresh_ports(self):
         # Cache value of last selected connection because it might change when manipulating combobox
         last_selected_connection = self.lastSelectedConnection
+        local_pref_port_found = False
 
         self._connection_scanner.scan_connections(with_wifi=True)
         self.connectionComboBox.clear()
@@ -128,11 +131,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             for i, port in enumerate(self._connection_scanner.port_list):
                 self.connectionComboBox.addItem(port)
                 if pref_port and port.upper() == pref_port.upper():
+                    local_pref_port_found = True
                     selected_port_idx = i
 
             # Override preferred port if user made selection and this port is still available
-            if last_selected_connection and last_selected_connection in self._connection_scanner.port_list:
-                selected_port_idx = self._connection_scanner.port_list.index(last_selected_connection)
+            # unless pref port was just found for the FIRST time
+            if (self._pref_port_found):
+                if last_selected_connection and last_selected_connection in self._connection_scanner.port_list:
+                    selected_port_idx = self._connection_scanner.port_list.index(last_selected_connection)
+
+            if (local_pref_port_found):
+                self._pref_port_found = True;
+
             # Set current port
             self.connectionComboBox.setCurrentIndex(selected_port_idx if selected_port_idx >= 0 else 0)
             self.connectButton.setEnabled(True)
