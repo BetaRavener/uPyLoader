@@ -47,7 +47,7 @@ class FileTransferDialog(QDialog, Ui_FileTransferDialog):
             sleep(0.5)
             self.accept()
         else:
-            self.progressBar.setValue(self._transfer.progress * 100)
+            self.progressBar.setValue(int(self._transfer.progress * 100))
 
     @property
     def transfer(self):
