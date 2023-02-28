@@ -12,3 +12,4 @@ dist/*
 *.exe
 *.swp
 *.DS_Store
+*.pyc
