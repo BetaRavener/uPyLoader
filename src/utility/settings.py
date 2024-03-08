@@ -28,7 +28,9 @@ class Settings(metaclass=Singleton):
         self._geometries = {}
         self.external_editor_path = None
         self.external_editor_args = None
-        self.new_line_key = QKeySequence(Qt.SHIFT + Qt.Key_Return, Qt.SHIFT + Qt.Key_Enter)
+        self.new_line_key = QKeySequence(
+            Qt.SHIFT + Qt.Key_Return, Qt.SHIFT + Qt.Key_Enter
+        )
         self.send_key = QKeySequence(Qt.Key_Return, Qt.Key_Enter)
         self.terminal_tab_spaces = 4
         self.mpy_cross_path = None
@@ -93,7 +95,9 @@ class Settings(metaclass=Singleton):
                     elif line.startswith("read_sleep"):
                         self.read_sleep = float(line.strip().split("=", 1)[1])
                     elif line.startswith("use_transfer_scripts"):
-                        self.use_transfer_scripts = bool(int(line.strip().split("=", 1)[1]))
+                        self.use_transfer_scripts = bool(
+                            int(line.strip().split("=", 1)[1])
+                        )
                     elif line.startswith("wifi_preset"):
                         value = line.strip().split("=", 1)[1]
                         name, ip, port = value.split(",")
@@ -113,7 +117,7 @@ class Settings(metaclass=Singleton):
             # Check if file exists (supports also hidden files)
             if os.path.isfile(config_file):
                 # Use write mode that also works with hidden files
-                with open(os.open(config_file, os.O_WRONLY | os.O_TRUNC), 'w') as file:
+                with open(os.open(config_file, os.O_WRONLY | os.O_TRUNC), "w") as file:
                     json.dump(self.serialize(), file)
             else:
                 # Simply create a new file

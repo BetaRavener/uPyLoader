@@ -48,11 +48,15 @@ class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
             password = None
 
         if not name:
-            QMessageBox().warning(self, "Missing name", "Fill the name of preset", QMessageBox.Ok)
+            QMessageBox().warning(
+                self, "Missing name", "Fill the name of preset", QMessageBox.Ok
+            )
             return
 
         if not IpHelper.is_valid_ipv4(ip):
-            QMessageBox().warning(self, "Invalid IP", "The IP address has invalid format", QMessageBox.Ok)
+            QMessageBox().warning(
+                self, "Invalid IP", "The IP address has invalid format", QMessageBox.Ok
+            )
             return
 
         Settings().wifi_presets.append((name, ip, port, password))
@@ -73,5 +77,7 @@ class WiFiPresetDialog(QDialog, Ui_WiFiPresetDialog):
         if idx.row() < 0:
             return
 
-        _, self.selected_ip, self.selected_port, self.selected_password = Settings().wifi_presets[idx.row()]
+        _, self.selected_ip, self.selected_port, self.selected_password = (
+            Settings().wifi_presets[idx.row()]
+        )
         self.accept()

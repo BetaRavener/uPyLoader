@@ -8,6 +8,13 @@ class Versioning(metaclass=Singleton):
 
     @staticmethod
     def get_version_string():
-        return ".".join([str(x) for x in [Versioning.MajorVersion,
-                                          Versioning.MinorVersion,
-                                          Versioning.PatchVersion]])
+        return ".".join(
+            [
+                str(x)
+                for x in [
+                    Versioning.MajorVersion,
+                    Versioning.MinorVersion,
+                    Versioning.PatchVersion,
+                ]
+            ]
+        )

@@ -62,7 +62,7 @@ class Connection:
         self.send_start_paste()
         if globals_init:
             self.send_line(globals_init, "\r")
-        self.send_line("with open(\"{}\") as f:".format(file_name))
+        self.send_line('with open("{}") as f:'.format(file_name))
         self.send_line("    exec(f.read(), globals())")
         self.send_end_paste()
 
@@ -71,7 +71,7 @@ class Connection:
         # Prevent echo
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
-        self.send_line("import os; os.remove(\"{}\")".format(file_name))
+        self.send_line('import os; os.remove("{}")'.format(file_name))
         try:
             self.read_to_next_prompt()
         except TimeoutError:
@@ -86,11 +86,11 @@ class Connection:
         file_size = 0
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
-        self.send_line("import os; os.stat(\"{}\")".format(file_name))
+        self.send_line('import os; os.stat("{}")'.format(file_name))
         try:
             res = self.read_to_next_prompt()
             # Skip first line which is command echo
-            res = res[res.find("\n"):]
+            res = res[res.find("\n") :]
             # Strip parentheses and split to items
             items = res.strip("()\r\n ").split(", ")
             # Sixth item is file size
@@ -167,8 +167,9 @@ class Connection:
         raise NotImplementedError()
 
     def write_file(self, file_name, text, transfer):
-        job_thread = Thread(target=self._write_file_job,
-                            args=(file_name, text, transfer))
+        job_thread = Thread(
+            target=self._write_file_job, args=(file_name, text, transfer)
+        )
         job_thread.setDaemon(True)
         job_thread.start()
 
@@ -184,8 +185,9 @@ class Connection:
                     break
 
     def write_files(self, local_file_paths, transfer):
-        job_thread = Thread(target=self._write_files_job,
-                            args=(local_file_paths, transfer))
+        job_thread = Thread(
+            target=self._write_files_job, args=(local_file_paths, transfer)
+        )
         job_thread.setDaemon(True)
         job_thread.start()
 

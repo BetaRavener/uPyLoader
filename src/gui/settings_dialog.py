@@ -16,8 +16,12 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
 
         # Workaround because UI compiler doesn't recognize QKeySequenceEdit
         # Create new items
-        new_line_key_edit = SettingsDialog.one_key_sequence_edit(self.terminalGroupBox, "newLineKeyEdit")
-        send_key_edit = SettingsDialog.one_key_sequence_edit(self.terminalGroupBox, "sendKeyEdit")
+        new_line_key_edit = SettingsDialog.one_key_sequence_edit(
+            self.terminalGroupBox, "newLineKeyEdit"
+        )
+        send_key_edit = SettingsDialog.one_key_sequence_edit(
+            self.terminalGroupBox, "sendKeyEdit"
+        )
         # Replace old items in layout
         self.terminalFormLayout.replaceWidget(self.newLineKeyEdit, new_line_key_edit)
         self.terminalFormLayout.replaceWidget(self.sendKeyEdit, send_key_edit)
@@ -45,15 +49,25 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         if Settings().preferred_port:
             self.preferredPortLineEdit.setText(Settings().preferred_port)
 
-        self.useTransferFilesCheckBox.stateChanged.connect(self.update_external_scripts_controls)
-        self.useCustomTransferFilesCheckBox.stateChanged.connect(self.update_external_scripts_controls)
+        self.useTransferFilesCheckBox.stateChanged.connect(
+            self.update_external_scripts_controls
+        )
+        self.useCustomTransferFilesCheckBox.stateChanged.connect(
+            self.update_external_scripts_controls
+        )
         if Settings().external_transfer_scripts_folder:
-            self.transferFilesPathLineEdit.setText(Settings().external_transfer_scripts_folder)
+            self.transferFilesPathLineEdit.setText(
+                Settings().external_transfer_scripts_folder
+            )
 
         self.useTransferFilesCheckBox.setChecked(Settings().use_transfer_scripts)
-        self.useCustomTransferFilesCheckBox.setChecked(Settings().use_custom_transfer_scripts)
+        self.useCustomTransferFilesCheckBox.setChecked(
+            Settings().use_custom_transfer_scripts
+        )
 
-        self.transferFilesPathBrowseButton.clicked.connect(self.browse_external_transfer_files)
+        self.transferFilesPathBrowseButton.clicked.connect(
+            self.browse_external_transfer_files
+        )
 
     def accept(self):
         self.save_settings()
@@ -63,7 +77,8 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         path = QFileDialog().getOpenFileName(
             caption="Select external editor",
             directory=QDir().homePath(),
-            options=QFileDialog.ReadOnly)
+            options=QFileDialog.ReadOnly,
+        )
 
         if path[0]:
             self.externalPathLineEdit.setText(path[0])
@@ -72,22 +87,28 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         path = QFileDialog().getOpenFileName(
             caption="Select mpy-cross compiler",
             directory=QDir().homePath(),
-            options=QFileDialog.ReadOnly)
+            options=QFileDialog.ReadOnly,
+        )
 
         if path[0]:
             self.mpyCrossPathLineEdit.setText(path[0])
 
     def update_external_scripts_controls(self):
-        self.useCustomTransferFilesCheckBox.setEnabled(self.useTransferFilesCheckBox.isChecked())
-        edit_enabled = self.useCustomTransferFilesCheckBox.isEnabled() and \
-                       self.useCustomTransferFilesCheckBox.isChecked()
+        self.useCustomTransferFilesCheckBox.setEnabled(
+            self.useTransferFilesCheckBox.isChecked()
+        )
+        edit_enabled = (
+            self.useCustomTransferFilesCheckBox.isEnabled()
+            and self.useCustomTransferFilesCheckBox.isChecked()
+        )
         self.transferFilesPathLineEdit.setEnabled(edit_enabled)
 
     def browse_external_transfer_files(self):
         path = QFileDialog().getExistingDirectory(
             caption="Select transfer files folder",
             directory=QDir().homePath(),
-            options=QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+            options=QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
+        )
 
         if path:
             self.transferFilesPathLineEdit.setText(path)
@@ -101,8 +122,12 @@ class SettingsDialog(QDialog, Ui_SettingsDialog):
         Settings().mpy_cross_path = self.mpyCrossPathLineEdit.text()
         Settings().preferred_port = self.preferredPortLineEdit.text()
         Settings().use_transfer_scripts = self.useTransferFilesCheckBox.isChecked()
-        Settings().use_custom_transfer_scripts = self.useCustomTransferFilesCheckBox.isChecked()
-        Settings().external_transfer_scripts_folder = self.transferFilesPathLineEdit.text()
+        Settings().use_custom_transfer_scripts = (
+            self.useCustomTransferFilesCheckBox.isChecked()
+        )
+        Settings().external_transfer_scripts_folder = (
+            self.transferFilesPathLineEdit.text()
+        )
         Settings().save()
 
     @staticmethod

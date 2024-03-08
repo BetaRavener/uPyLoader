@@ -4,9 +4,11 @@ import select
 
 DEBUG = 1
 
+
 def debugmsg(msg):
     if DEBUG:
         print(msg)
+
 
 class WebSocket:
     def __init__(self, s):

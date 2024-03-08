@@ -32,8 +32,12 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         self.terminal.add_event.connect(self.terminal_listener)
 
         self.outputTextEdit.installEventFilter(self)
-        self.outputTextEdit.verticalScrollBar().sliderPressed.connect(self._stop_scrolling)
-        self.outputTextEdit.verticalScrollBar().sliderReleased.connect(self._scroll_released)
+        self.outputTextEdit.verticalScrollBar().sliderPressed.connect(
+            self._stop_scrolling
+        )
+        self.outputTextEdit.verticalScrollBar().sliderReleased.connect(
+            self._scroll_released
+        )
         self.outputTextEdit.verticalScrollBar().installEventFilter(self)
         self.inputTextBox.installEventFilter(self)
         self.clearButton.clicked.connect(self.clear_content)
@@ -52,7 +56,9 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
         self.autoscrollCheckBox.stateChanged.connect(self._auto_scroll_changed)
 
         self.terminal.read()
-        self.outputTextEdit.setText(TerminalDialog.process_backspaces(self.terminal.history))
+        self.outputTextEdit.setText(
+            TerminalDialog.process_backspaces(self.terminal.history)
+        )
         self._input_history_index = 0
 
     def _stop_scrolling(self):
@@ -142,18 +148,28 @@ class TerminalDialog(QDialog, Ui_TerminalDialog):
                         self.send_input()
                         return True
                     if event.key() == Qt.Key_Tab:
-                        self.inputTextBox.insertPlainText(" "*Settings().terminal_tab_spaces)
+                        self.inputTextBox.insertPlainText(
+                            " " * Settings().terminal_tab_spaces
+                        )
                         return True
-                    if event.key() == Qt.Key_Up and (event.modifiers() & Qt.ControlModifier):
+                    if event.key() == Qt.Key_Up and (
+                        event.modifiers() & Qt.ControlModifier
+                    ):
                         if self._input_history_index > 0:
                             self._input_history_index -= 1
                             self.inputTextBox.clear()
-                            self.inputTextBox.setPlainText(self.terminal.input(self._input_history_index))
-                    if event.key() == Qt.Key_Down and (event.modifiers() & Qt.ControlModifier):
+                            self.inputTextBox.setPlainText(
+                                self.terminal.input(self._input_history_index)
+                            )
+                    if event.key() == Qt.Key_Down and (
+                        event.modifiers() & Qt.ControlModifier
+                    ):
                         if self._input_history_index < self.terminal.last_input_idx():
                             self._input_history_index += 1
                             self.inputTextBox.clear()
-                            self.inputTextBox.setPlainText(self.terminal.input(self._input_history_index))
+                            self.inputTextBox.setPlainText(
+                                self.terminal.input(self._input_history_index)
+                            )
         elif target == self.outputTextEdit:
             if isinstance(event, QKeyEvent):
                 if event.type() == QEvent.KeyPress:

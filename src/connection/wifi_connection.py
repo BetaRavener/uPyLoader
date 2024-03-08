@@ -10,7 +10,12 @@ from src.connection.connection import Connection
 from src.connection.websocket import WebSocket
 from src.helpers import websocket_helper
 from src.logic.file_transfer import FileTransfer
-from src.utility.exceptions import PasswordException, NewPasswordException, OperationError, HostnameResolutionError
+from src.utility.exceptions import (
+    PasswordException,
+    NewPasswordException,
+    OperationError,
+    HostnameResolutionError,
+)
 
 
 class WifiConnection(Connection):
@@ -123,9 +128,9 @@ class WifiConnection(Connection):
         x = self.ws.read_all(0.2)
 
         if x and self._terminal is not None:
-            if x == b'\x08\x1b[K':
-                x = b'\x08'
-            if x[:3] == b'\x1b[':  # Control sequence
+            if x == b"\x08\x1b[K":
+                x = b"\x08"
+            if x[:3] == b"\x1b[":  # Control sequence
                 # TODO: regex firt match 14D on x[3:]
                 pass
 
@@ -171,8 +176,16 @@ class WifiConnection(Connection):
             file_name = file_name.encode("utf-8")
 
         ret = b""
-        rec = struct.pack(WifiConnection.WEBREPL_REQ_S, b"WA", WifiConnection.WEBREPL_GET_FILE,
-                          0, 0, 0, len(file_name), file_name)
+        rec = struct.pack(
+            WifiConnection.WEBREPL_REQ_S,
+            b"WA",
+            WifiConnection.WEBREPL_GET_FILE,
+            0,
+            0,
+            0,
+            len(file_name),
+            file_name,
+        )
 
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
@@ -217,8 +230,16 @@ class WifiConnection(Connection):
             text = text.encode("utf-8")
 
         sz = len(text)
-        rec = struct.pack(WifiConnection.WEBREPL_REQ_S, b"WA", WifiConnection.WEBREPL_PUT_FILE, 0, 0, sz,
-                          len(file_name), file_name)
+        rec = struct.pack(
+            WifiConnection.WEBREPL_REQ_S,
+            b"WA",
+            WifiConnection.WEBREPL_PUT_FILE,
+            0,
+            0,
+            sz,
+            len(file_name),
+            file_name,
+        )
 
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
@@ -241,7 +262,7 @@ class WifiConnection(Connection):
         self.ws.recv_timeout = 30
         try:
             while True:
-                buf = text[cnt:cnt + 256]
+                buf = text[cnt : cnt + 256]
                 if not buf:
                     break
                 self.ws.write(buf, file_transfer=True)
@@ -260,7 +281,7 @@ class WifiConnection(Connection):
             info = "Unexpected error, report this on project's github issues page\n{}: {}\n{}".format(
                 type(generalException).__name__,
                 str(generalException),
-                "".join(traceback.format_tb(generalException.__traceback__))
+                "".join(traceback.format_tb(generalException.__traceback__)),
             )
             transfer.mark_error(info)
         finally:

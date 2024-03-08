@@ -21,12 +21,15 @@ class TransferTreeView(QTreeView):
         # self._add_menu_action("Transfer changed", self._transfer_changed_handler)
         self.context_menu.addSeparator()
         self._destination_menu_action = self._add_menu_action(
-            "Set as destination", self._set_transfer_directory_handler)
+            "Set as destination", self._set_transfer_directory_handler
+        )
 
     def _header_double_clicked_handler(self, idx):
         self.header().setSectionResizeMode(idx, QHeaderView.ResizeToContents)
         # Has to be QTimer, multithreading.Timer blocks Qt thread for some reason
-        QTimer.singleShot(10, lambda: self.header().setSectionResizeMode(idx, QHeaderView.Interactive))
+        QTimer.singleShot(
+            10, lambda: self.header().setSectionResizeMode(idx, QHeaderView.Interactive)
+        )
 
     def _add_menu_action(self, title, handler):
         action = QAction(title, self.context_menu)

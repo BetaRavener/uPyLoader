@@ -10,7 +10,7 @@ from src.utility.settings import Settings
 __author__ = "Ivan Sevcik"
 
 # Main Function
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Create main app
     myApp = QApplication(sys.argv)
     myApp.setQuitOnLastWindowClosed(True)

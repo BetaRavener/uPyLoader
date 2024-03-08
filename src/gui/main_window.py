@@ -1,9 +1,23 @@
 import os
 import subprocess
 
-from PyQt5.QtCore import QStringListModel, QModelIndex, Qt, QItemSelectionModel, QEventLoop
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileSystemModel, \
-    QFileDialog, QInputDialog, QLineEdit, QMessageBox, QHeaderView
+from PyQt5.QtCore import (
+    QStringListModel,
+    QModelIndex,
+    Qt,
+    QItemSelectionModel,
+    QEventLoop,
+)
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QFileSystemModel,
+    QFileDialog,
+    QInputDialog,
+    QLineEdit,
+    QMessageBox,
+    QHeaderView,
+)
 
 from gui.mainwindow import Ui_MainWindow
 from src.connection.baud_options import BaudOptions
@@ -20,7 +34,12 @@ from src.gui.terminal_dialog import TerminalDialog
 from src.gui.wifi_preset_dialog import WiFiPresetDialog
 from src.helpers.ip_helper import IpHelper
 from src.logic.file_transfer import FileTransfer
-from src.utility.exceptions import PasswordException, NewPasswordException, OperationError, HostnameResolutionError
+from src.utility.exceptions import (
+    PasswordException,
+    NewPasswordException,
+    OperationError,
+    HostnameResolutionError,
+)
 from src.utility.file_info import FileInfo
 from src.utility.settings import Settings
 
@@ -81,7 +100,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.localPathEdit.setText(self._root_dir)
 
         local_selection_model = self.localFilesTreeView.selectionModel()
-        local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
+        local_selection_model.selectionChanged.connect(
+            self.local_file_selection_changed
+        )
         self.localFilesTreeView.doubleClicked.connect(self.open_local_file)
 
         self.compileButton.clicked.connect(self.compile_files)
@@ -97,7 +118,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Settings().root_dir = self._root_dir
         Settings().auto_transfer = self.autoTransferCheckBox.isChecked()
         Settings().update_geometry("main", self.saveGeometry())
-        Settings().update_geometry("localPanel", self.localFilesTreeView.header().saveState())
+        Settings().update_geometry(
+            "localPanel", self.localFilesTreeView.header().saveState()
+        )
         Settings().save()
         if self._connection is not None and self._connection.is_connected():
             self.end_connection()
@@ -108,7 +131,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         event.accept()
 
     def connection_changed(self):
-        connection = self._connection_scanner.port_list[self.connectionComboBox.currentIndex()]
+        connection = self._connection_scanner.port_list[
+            self.connectionComboBox.currentIndex()
+        ]
         self.connectionStackedWidget.setCurrentIndex(1 if connection == "wifi" else 0)
         self.lastSelectedConnection = connection
 
@@ -131,37 +156,59 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     selected_port_idx = i
 
             # Override preferred port if user made selection and this port is still available
-            if last_selected_connection and last_selected_connection in self._connection_scanner.port_list:
-                selected_port_idx = self._connection_scanner.port_list.index(last_selected_connection)
+            if (
+                last_selected_connection
+                and last_selected_connection in self._connection_scanner.port_list
+            ):
+                selected_port_idx = self._connection_scanner.port_list.index(
+                    last_selected_connection
+                )
             # Set current port
-            self.connectionComboBox.setCurrentIndex(selected_port_idx if selected_port_idx >= 0 else 0)
+            self.connectionComboBox.setCurrentIndex(
+                selected_port_idx if selected_port_idx >= 0 else 0
+            )
             self.connectButton.setEnabled(True)
         else:
             self.connectButton.setEnabled(False)
 
     def set_status(self, status):
         if status == "Connected":
-            self.statusLabel.setStyleSheet("QLabel { background-color : none; color : green; font : bold;}")
+            self.statusLabel.setStyleSheet(
+                "QLabel { background-color : none; color : green; font : bold;}"
+            )
         elif status == "Disconnected":
-            self.statusLabel.setStyleSheet("QLabel { background-color : none; color : red; }")
+            self.statusLabel.setStyleSheet(
+                "QLabel { background-color : none; color : red; }"
+            )
         elif status == "Connecting...":
-            self.statusLabel.setStyleSheet("QLabel { background-color : none; color : blue; }")
+            self.statusLabel.setStyleSheet(
+                "QLabel { background-color : none; color : blue; }"
+            )
         elif status == "Error":
-            self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
+            self.statusLabel.setStyleSheet(
+                "QLabel { background-color : red; color : white; }"
+            )
         elif status == "Password":
-            self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
+            self.statusLabel.setStyleSheet(
+                "QLabel { background-color : red; color : white; }"
+            )
             status = "Wrong Password"
         elif status == "Host":
-            self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
+            self.statusLabel.setStyleSheet(
+                "QLabel { background-color : red; color : white; }"
+            )
             status = "Invalid IP or domain"
         else:
-            self.statusLabel.setStyleSheet("QLabel { background-color : red; color : white; }")
+            self.statusLabel.setStyleSheet(
+                "QLabel { background-color : red; color : white; }"
+            )
         self.statusLabel.setText(status)
         QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
 
     def update_compile_button(self):
-        self.compileButton.setEnabled(bool(Settings().mpy_cross_path) and
-                                      len(self.get_local_file_selection()) > 0)
+        self.compileButton.setEnabled(
+            bool(Settings().mpy_cross_path) and len(self.get_local_file_selection()) > 0
+        )
 
     def disconnected(self):
         self.connectButton.setText("Connect")
@@ -218,7 +265,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         model.setRootPath(self._root_dir)
         self.localFilesTreeView.setModel(model)
         local_selection_model = self.localFilesTreeView.selectionModel()
-        local_selection_model.selectionChanged.connect(self.local_file_selection_changed)
+        local_selection_model.selectionChanged.connect(
+            self.local_file_selection_changed
+        )
         self.localFilesTreeView.setRootIndex(model.index(self._root_dir))
 
     def serial_mcu_connection_valid(self):
@@ -233,7 +282,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             file_list = self._connection.list_files()
         except OperationError:
-            QMessageBox().critical(self, "Operation failed", "Could not list files.", QMessageBox.Ok)
+            QMessageBox().critical(
+                self, "Operation failed", "Could not list files.", QMessageBox.Ok
+            )
             return
 
         self._mcu_files_model = QStringListModel()
@@ -263,7 +314,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         try:
             self._connection.remove_file(file_name)
         except OperationError:
-            QMessageBox().critical(self, "Operation failed", "Could not remove the file.", QMessageBox.Ok)
+            QMessageBox().critical(
+                self, "Operation failed", "Could not remove the file.", QMessageBox.Ok
+            )
             return
         self.list_mcu_files()
 
@@ -282,14 +335,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def start_connection(self):
         self.set_status("Connecting...")
 
-        connection = self._connection_scanner.port_list[self.connectionComboBox.currentIndex()]
+        connection = self._connection_scanner.port_list[
+            self.connectionComboBox.currentIndex()
+        ]
 
         if connection == "wifi":
             host = self.addressLineEdit.text()
             port = self.portSpinBox.value()
 
             try:
-                self._connection = WifiConnection(host, port, self._terminal, self.ask_for_password)
+                self._connection = WifiConnection(
+                    host, port, self._terminal, self.ask_for_password
+                )
             except ConnectionError:
                 # Do nothing, _connection will be None and code
                 # at the end of function will handle this
@@ -301,17 +358,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.set_status("Host")
                 return
             except NewPasswordException:
-                QMessageBox().information(self, "Password set",
-                                          "WebREPL password was not previously configured, so it was set to "
-                                          "\"passw\" (without quotes). "
-                                          "You can change it in port_config.py (will require reboot to take effect). "
-                                          "Caution: Passwords longer than 9 characters will be truncated.\n\n"
-                                          "Continue by connecting again.", QMessageBox.Ok)
+                QMessageBox().information(
+                    self,
+                    "Password set",
+                    "WebREPL password was not previously configured, so it was set to "
+                    '"passw" (without quotes). '
+                    "You can change it in port_config.py (will require reboot to take effect). "
+                    "Caution: Passwords longer than 9 characters will be truncated.\n\n"
+                    "Continue by connecting again.",
+                    QMessageBox.Ok,
+                )
                 return
         else:
             baud_rate = BaudOptions.speeds[self.baudComboBox.currentIndex()]
-            self._connection = SerialConnection(connection, baud_rate, self._terminal,
-                                                self.serialResetCheckBox.isChecked())
+            self._connection = SerialConnection(
+                connection,
+                baud_rate,
+                self._terminal,
+                self.serialResetCheckBox.isChecked(),
+            )
             if self._connection.is_connected():
                 if not self.serial_mcu_connection_valid():
                     self._connection.disconnect()
@@ -323,12 +388,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self._connection is not None and self._connection.is_connected():
             self.connected()
             if isinstance(self._connection, SerialConnection):
-                if Settings().use_transfer_scripts and not self._connection.check_transfer_scripts_version():
-                    QMessageBox.warning(self,
-                                        "Transfer scripts problem",
-                                        "Transfer scripts for UART are either"
-                                        " missing or have wrong version.\nPlease use 'File->Init transfer files' to"
-                                        " fix this issue.")
+                if (
+                    Settings().use_transfer_scripts
+                    and not self._connection.check_transfer_scripts_version()
+                ):
+                    QMessageBox.warning(
+                        self,
+                        "Transfer scripts problem",
+                        "Transfer scripts for UART are either"
+                        " missing or have wrong version.\nPlease use 'File->Init transfer files' to"
+                        " fix this issue.",
+                    )
         else:
             self._connection = None
             self.set_status("Error")
@@ -342,9 +412,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def show_presets(self):
         dialog = WiFiPresetDialog()
-        dialog.accepted.connect(lambda: self.use_preset(dialog.selected_ip,
-                                                        dialog.selected_port,
-                                                        dialog.selected_password))
+        dialog.accepted.connect(
+            lambda: self.use_preset(
+                dialog.selected_ip, dialog.selected_port, dialog.selected_password
+            )
+        )
         dialog.exec()
 
     def use_preset(self, ip, port, password):
@@ -377,7 +449,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.open_external_editor(local_path)
         else:
             if FileInfo.is_file_binary(local_path):
-                QMessageBox.information(self, "Binary file detected", "Editor doesn't support binary files.")
+                QMessageBox.information(
+                    self, "Binary file detected", "Editor doesn't support binary files."
+                )
                 return
             with open(local_path) as f:
                 text = "".join(f.readlines())
@@ -428,7 +502,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             split = os.path.splitext(local_path)
             if split[1] == ".mpy":
                 title = "COMPILE WARNING!! " + os.path.basename(local_path)
-                QMessageBox.warning(self, title, "Can't compile .mpy files, already bytecode")
+                QMessageBox.warning(
+                    self, title, "Can't compile .mpy files, already bytecode"
+                )
                 continue
             mpy_path = split[0] + ".mpy"
 
@@ -441,17 +517,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 pass
 
             try:
-                with subprocess.Popen([Settings().mpy_cross_path, os.path.basename(local_path)],
-                                      cwd=os.path.dirname(local_path),
-                                      stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+                with subprocess.Popen(
+                    [Settings().mpy_cross_path, os.path.basename(local_path)],
+                    cwd=os.path.dirname(local_path),
+                    stdout=subprocess.PIPE,
+                    stdin=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                ) as proc:
                     proc.wait()  # Wait for process to finish
                     out = proc.stderr.read()
                     if out:
-                        QMessageBox.warning(self, "Compilation error", out.decode("utf-8"))
+                        QMessageBox.warning(
+                            self, "Compilation error", out.decode("utf-8")
+                        )
                         continue
 
             except OSError:
-                QMessageBox.warning(self, "Compilation error", "Failed to run mpy-cross")
+                QMessageBox.warning(
+                    self, "Compilation error", "Failed to run mpy-cross"
+                )
                 continue
 
             compiled_file_paths += [mpy_path]
@@ -477,10 +561,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         for mpy_path in compiled_file_paths:
             idx = self.localFilesTreeView.model().index(mpy_path)
-            selection_model.select(idx, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+            selection_model.select(
+                idx, QItemSelectionModel.Select | QItemSelectionModel.Rows
+            )
 
-        if (self.autoTransferCheckBox.isChecked() and self._connection and self._connection.is_connected()
-            and compiled_file_paths):
+        if (
+            self.autoTransferCheckBox.isChecked()
+            and self._connection
+            and self._connection.is_connected()
+            and compiled_file_paths
+        ):
             self.transfer_to_mcu()
 
     def finished_read_mcu_file(self, file_name, transfer):
@@ -491,8 +581,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             try:
                 text = result.binary_data.decode("utf-8", "strict")
             except UnicodeDecodeError:
-                QMessageBox.information(self, "Binary file detected", "Editor doesn't support binary files, "
-                                                                      "but these can still be transferred.")
+                QMessageBox.information(
+                    self,
+                    "Binary file detected",
+                    "Editor doesn't support binary files, "
+                    "but these can still be transferred.",
+                )
                 return
         else:
             text = "! Failed to read file !"
@@ -507,7 +601,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         file_name = model.data(idx, Qt.EditRole)
 
         progress_dlg = FileTransferDialog(FileTransferDialog.DOWNLOAD)
-        progress_dlg.finished.connect(lambda: self.finished_read_mcu_file(file_name, progress_dlg.transfer))
+        progress_dlg.finished.connect(
+            lambda: self.finished_read_mcu_file(file_name, progress_dlg.transfer)
+        )
         progress_dlg.show()
         self._connection.read_file(file_name, progress_dlg.transfer)
 
@@ -546,7 +642,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             with open(file_path, "wb") as file:
                 file.write(transfer.read_result.binary_data)
         except IOError:
-            QMessageBox.critical(self, "Save operation failed", "Couldn't save the file. Check path and permissions.")
+            QMessageBox.critical(
+                self,
+                "Save operation failed",
+                "Couldn't save the file. Check path and permissions.",
+            )
 
     def transfer_to_pc(self):
         idx = self.mcuFilesListView.currentIndex()
@@ -557,7 +657,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         local_path = self.localPathEdit.text() + "/" + remote_path
 
         progress_dlg = FileTransferDialog(FileTransferDialog.DOWNLOAD)
-        progress_dlg.finished.connect(lambda: self.finished_transfer_to_pc(local_path, progress_dlg.transfer))
+        progress_dlg.finished.connect(
+            lambda: self.finished_transfer_to_pc(local_path, progress_dlg.transfer)
+        )
         progress_dlg.show()
         self._connection.read_file(remote_path, progress_dlg.transfer)
 
@@ -575,11 +677,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ext_path = Settings().external_editor_path
         ext_args = []
         if Settings().external_editor_args:
+
             def wildcard_replace(s):
                 s = s.replace("%f", file_path)
                 return s
 
-            ext_args = [wildcard_replace(x.strip()) for x in Settings().external_editor_args.split(";")]
+            ext_args = [
+                wildcard_replace(x.strip())
+                for x in Settings().external_editor_args.split(";")
+            ]
 
         subprocess.Popen([ext_path] + ext_args)
 

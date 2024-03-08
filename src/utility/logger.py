@@ -13,6 +13,6 @@ class Logger:
             Logger._log_file = open("log.txt", "w+b", 0)
 
         if isinstance(x, str):
-            x = x.encode('utf-8')
+            x = x.encode("utf-8")
 
         Logger._log_file.write(x)

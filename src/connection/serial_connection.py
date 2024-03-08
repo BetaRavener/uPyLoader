@@ -21,7 +21,9 @@ class SerialConnection(Connection):
         self._baud_rate = baud_rate
 
         try:
-            self._serial = serial.Serial(None, self._baud_rate, timeout=0, write_timeout=0.2)
+            self._serial = serial.Serial(
+                None, self._baud_rate, timeout=0, write_timeout=0.2
+            )
             self._serial.dtr = False
             self._serial.rts = False
             self._serial.port = port
@@ -67,14 +69,14 @@ class SerialConnection(Connection):
         assert isinstance(line_text, str)
         assert isinstance(ending, str)
 
-        self._serial.write((line_text + ending).encode('utf-8'))
+        self._serial.write((line_text + ending).encode("utf-8"))
         self._serial.flush()
         time.sleep(Settings().send_sleep)
 
     def send_character(self, char):
         assert isinstance(char, str)
 
-        self._serial.write(char.encode('utf-8'))
+        self._serial.write(char.encode("utf-8"))
         time.sleep(Settings().send_sleep)
 
     def send_bytes(self, binary):
@@ -85,8 +87,8 @@ class SerialConnection(Connection):
         x = self._serial.readline()
 
         if x and self._terminal is not None:
-            if x == b'\x08\x1b[K':
-                x = b'\x08'
+            if x == b"\x08\x1b[K":
+                x = b"\x08"
 
             self._terminal.add(x.decode("utf-8", errors="replace"))
 
@@ -115,7 +117,7 @@ class SerialConnection(Connection):
             x = self._serial.read(100)
             if x is None or not x:
                 break
-            buffer += x.decode('utf-8', errors="replace")
+            buffer += x.decode("utf-8", errors="replace")
 
         if self._terminal is not None:
             self._terminal.add(buffer)
@@ -134,8 +136,8 @@ class SerialConnection(Connection):
         for c in text:
             if c == "\n":
                 ret += "\\n"
-            elif c == "\"":
-                ret += "\\\""
+            elif c == '"':
+                ret += '\\"'
             else:
                 ret += c
         return ret
@@ -145,20 +147,20 @@ class SerialConnection(Connection):
         self._auto_read_enabled = False
         self.send_kill()
         self.read_junk()
-        self.send_block("with open(\"__upload.py\") as f:\n  f.readline()\n")
+        self.send_block('with open("__upload.py") as f:\n  f.readline()\n')
         self._serial.flush()
         success = True
         try:
             resp = self.read_to_next_prompt()
             idx = resp.find("#V")
-            if idx < 0 or resp[idx:idx+3] != "#V2":
+            if idx < 0 or resp[idx : idx + 3] != "#V2":
                 raise ValueError
             self.read_junk()
-            self.send_block("with open(\"__download.py\") as f:\n  f.readline()\n")
+            self.send_block('with open("__download.py") as f:\n  f.readline()\n')
             self._serial.flush()
             resp = self.read_to_next_prompt()
             idx = resp.find("#V")
-            if idx < 0 or resp[idx:idx+3] != "#V2":
+            if idx < 0 or resp[idx : idx + 3] != "#V2":
                 raise ValueError
         except (TimeoutError, ValueError):
             success = False
@@ -170,7 +172,9 @@ class SerialConnection(Connection):
     def _transfer_file_path(transfer_file_name):
         # External transfer scripts folder should be used (use case: files need to be edited)
         if Settings().use_custom_transfer_scripts:
-            path = "".join([Settings().external_transfer_scripts_folder, "/", transfer_file_name])
+            path = "".join(
+                [Settings().external_transfer_scripts_folder, "/", transfer_file_name]
+            )
             # Check if file exists.
             if os.path.isfile(path):
                 return path
@@ -209,16 +213,16 @@ class SerialConnection(Connection):
             self.read_all()
             with open(SerialConnection._transfer_file_path("upload.py")) as f:
                 data = f.read()
-                data = data.replace("\"file_name.py\"", "file_name")
-                self.send_file(data.encode('utf-8'), transfer)
+                data = data.replace('"file_name.py"', "file_name")
+                self.send_file(data.encode("utf-8"), transfer)
             transfer.mark_finished()
 
-            self.run_file("__upload.py", "file_name=\"{}\"".format("__download.py"))
+            self.run_file("__upload.py", 'file_name="{}"'.format("__download.py"))
             self.read_all()
             with open(SerialConnection._transfer_file_path("download.py")) as f:
                 data = f.read()
-                data = data.replace("\"file_name.py\"", "file_name")
-                self.send_file(data.encode('utf-8'), transfer)
+                data = data.replace('"file_name.py"', "file_name")
+                self.send_file(data.encode("utf-8"), transfer)
             transfer.mark_finished()
         except FileNotFoundError:
             transfer.mark_error("Couldn't locate transfer scripts.")
@@ -247,10 +251,12 @@ class SerialConnection(Connection):
         n = 48
         total_len = len(data)
         while idx < total_len:
-            chunk = data[idx:idx + n]
+            chunk = data[idx : idx + n]
             # Encode data to prevent special REPL sequences
             en_chunk = base64.b64encode(chunk)
-            self._serial.write(b"".join([b"#", str(len(en_chunk)).zfill(2).encode("ascii"), en_chunk]))
+            self._serial.write(
+                b"".join([b"#", str(len(en_chunk)).zfill(2).encode("ascii"), en_chunk])
+            )
             ack = self.read_with_timeout(2)
 
             error = None
@@ -262,10 +268,13 @@ class SerialConnection(Connection):
                 error = "Device didn't receive as much data as was indicated in the message header."
             elif ack != b"#1":
                 error = "Error in protocol. Expected #1 but device replied with:\n{}.".format(
-                    ack.decode(errors='ignore'))
+                    ack.decode(errors="ignore")
+                )
 
             if error:
-                error += "\n\nLast message was:\n{}.".format(chunk.decode(errors='ignore'))
+                error += "\n\nLast message was:\n{}.".format(
+                    chunk.decode(errors="ignore")
+                )
                 self.handle_transfer_error(error)
 
             idx += len(chunk)
@@ -279,8 +288,11 @@ class SerialConnection(Connection):
         if not check:
             error = "Device failed to respond in specified timeout."
         if check != b"#0":
-            error = "Error in protocol. Expected #0 but device replied with: {}.".format(
-                check.decode(errors='ignore'))
+            error = (
+                "Error in protocol. Expected #0 but device replied with: {}.".format(
+                    check.decode(errors="ignore")
+                )
+            )
 
         if error:
             self.handle_transfer_error(error)
@@ -315,12 +327,12 @@ class SerialConnection(Connection):
 
     def _write_file_job(self, file_name, text, transfer):
         if isinstance(text, str):
-            text = text.encode('utf-8')
+            text = text.encode("utf-8")
 
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         if Settings().use_transfer_scripts:
-            self.run_file("__upload.py", "file_name=\"{}\"".format(file_name))
+            self.run_file("__upload.py", 'file_name="{}"'.format(file_name))
         else:
             try:
                 self.send_upload_file(file_name)
@@ -346,7 +358,7 @@ class SerialConnection(Connection):
         self._auto_reader_lock.acquire()
         self._auto_read_enabled = False
         if Settings().use_transfer_scripts:
-            self.run_file("__download.py", "file_name=\"{}\"".format(file_name))
+            self.run_file("__download.py", 'file_name="{}"'.format(file_name))
         else:
             try:
                 self.send_download_file(file_name)

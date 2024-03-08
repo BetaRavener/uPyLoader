@@ -22,7 +22,7 @@ class CodeEditDialog(QDialog, Ui_CodeEditDialog):
 
         self.saveLocalButton.clicked.connect(self._save_local)
         self.saveMcuButton.clicked.connect(self._save_to_mcu)
-        #self.runButton.clicked.connect(self._run_file)
+        # self.runButton.clicked.connect(self._run_file)
         self.runButton.hide()
 
         fixed_font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
@@ -48,19 +48,27 @@ class CodeEditDialog(QDialog, Ui_CodeEditDialog):
     def _save_local(self):
         path = self.localPathEdit.text()
         if not path:
-            QMessageBox.warning(self, "Invalid path", "Enter correct path for local file.")
+            QMessageBox.warning(
+                self, "Invalid path", "Enter correct path for local file."
+            )
             return
 
         try:
             with open(path, "w") as file:
                 file.write(self.codeEdit.toPlainText())
         except IOError:
-            QMessageBox.critical(self, "Save operation failed", "Couldn't save the file. Check path and permissions.")
+            QMessageBox.critical(
+                self,
+                "Save operation failed",
+                "Couldn't save the file. Check path and permissions.",
+            )
 
     def _save_to_mcu(self):
         name = self.remotePathEdit.text()
         if not name:
-            QMessageBox.warning(self, "Invalid name", "Enter correct name for remote file.")
+            QMessageBox.warning(
+                self, "Invalid name", "Enter correct name for remote file."
+            )
             return
 
         content = self.codeEdit.toPlainText()

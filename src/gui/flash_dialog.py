@@ -77,20 +77,26 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         if Settings().last_firmware_directory:
             firmware_dir = Settings().last_firmware_directory
 
-        p = QFileDialog.getOpenFileName(parent=self, caption="Select python executable",
-                                        directory=firmware_dir, filter="*.bin")
+        p = QFileDialog.getOpenFileName(
+            parent=self,
+            caption="Select python executable",
+            directory=firmware_dir,
+            filter="*.bin",
+        )
         path = p[0]
         if path:
             self.firmwarePathEdit.setText(path)
             Settings().last_firmware_directory = "/".join(path.split("/")[0:-1])
 
     def _show_wiring(self):
-        wiring = "RST\t-> RTS\n" \
-                 "GPIO0\t-> DTR\n" \
-                 "TXD\t-> RXD\n" \
-                 "RXD\t-> TXD\n" \
-                 "VCC\t-> 3V3\n" \
-                 "GND\t-> GND"
+        wiring = (
+            "RST\t-> RTS\n"
+            "GPIO0\t-> DTR\n"
+            "TXD\t-> RXD\n"
+            "RXD\t-> TXD\n"
+            "VCC\t-> 3V3\n"
+            "GND\t-> GND"
+        )
         QMessageBox.information(self, "Wiring", wiring)
 
     def _update_output(self):
@@ -101,7 +107,9 @@ class FlashDialog(QDialog, Ui_FlashDialog):
         scrolling = scrollbar.isSliderDown()
 
         with self._flash_output_mutex:
-            self.outputEdit.setPlainText(self._flash_output.decode('utf-8', errors="ignore"))
+            self.outputEdit.setPlainText(
+                self._flash_output.decode("utf-8", errors="ignore")
+            )
 
         if not scrolling:
             scrollbar.setValue(scrollbar.maximum())
@@ -117,8 +125,13 @@ class FlashDialog(QDialog, Ui_FlashDialog):
                 params.append("--erase")
             if Settings().debug_mode:
                 params.append("--debug")
-            with subprocess.Popen(params, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
-                                  stderr=subprocess.PIPE, bufsize=1) as sub:
+            with subprocess.Popen(
+                params,
+                stdout=subprocess.PIPE,
+                stdin=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                bufsize=1,
+            ) as sub:
                 buf = bytearray()
                 delete = 0
                 Logger.log("Pipe receiving:\r\n")
@@ -131,9 +144,7 @@ class FlashDialog(QDialog, Ui_FlashDialog):
                     # - didn't receive any character (timeout?)
                     # - received first backspace (content is going to be deleted)
                     # - received whitespace or dot (used to signal progress)
-                    if not x \
-                            or (x[0] == 8 and delete == 0) \
-                            or (x[0] in b"\r\n\t ."):
+                    if not x or (x[0] == 8 and delete == 0) or (x[0] in b"\r\n\t ."):
                         with self._flash_output_mutex:
                             if delete > 0:
                                 self._flash_output = self._flash_output[:-delete]
@@ -172,8 +183,12 @@ class FlashDialog(QDialog, Ui_FlashDialog):
             if not firmware_file:
                 QMessageBox.critical(self, "Error", "Firmware file was not set.")
                 return
-        self._port = self._connection_scanner.port_list[self.portComboBox.currentIndex()]
-        job_thread = Thread(target=self._flash_job, args=[python_path, firmware_file, erase])
+        self._port = self._connection_scanner.port_list[
+            self.portComboBox.currentIndex()
+        ]
+        job_thread = Thread(
+            target=self._flash_job, args=[python_path, firmware_file, erase]
+        )
         job_thread.setDaemon(True)
         job_thread.start()
         self.eraseButton.setEnabled(False)
@@ -197,10 +212,16 @@ class FlashDialog(QDialog, Ui_FlashDialog):
                 self._flash_output.extend(b"Done, you may now use the device.\n")
                 self._update_output()
             except (OSError, serial.SerialException):
-                QMessageBox.critical(self, "Flashing Error", "Failed to reboot into working mode.")
+                QMessageBox.critical(
+                    self, "Flashing Error", "Failed to reboot into working mode."
+                )
 
         elif code == -1:
-            QMessageBox.critical(self, "Flashing Error", "Failed to run script.\nCheck that path to python is correct.")
+            QMessageBox.critical(
+                self,
+                "Flashing Error",
+                "Failed to run script.\nCheck that path to python is correct.",
+            )
         else:
             QMessageBox.critical(self, "Flashing Error", "Failed to flash new firmware")
         self.eraseButton.setEnabled(True)
